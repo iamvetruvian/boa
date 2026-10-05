@@ -1,4 +1,4 @@
-//! SanitizerCoverage edge stub for Fuzzilli (Rust port of its `coverage.c`).
+//! `SanitizerCoverage` edge stub for Fuzzilli (Rust port of its `coverage.c`).
 //!
 //! Built with `-Cpasses=sancov-module
 //! -Cllvm-args=-sanitizer-coverage-trace-pc-guard`, LLVM emits calls to
@@ -11,8 +11,9 @@
 
 use std::sync::{Mutex, OnceLock};
 
-const SHM_SIZE: usize = 0x200000;
-const MAX_EDGES: u32 = ((SHM_SIZE - 4) * 8) as u32;
+const SHM_SIZE_U32: u32 = 0x20_0000;
+const SHM_SIZE: usize = SHM_SIZE_U32 as usize;
+const MAX_EDGES: u32 = (SHM_SIZE_U32 - 4) * 8;
 
 /// One module's guard array (start address + guard count; addresses, not
 /// pointers, because raw pointers are not `Sync` for statics).
@@ -35,13 +36,12 @@ unsafe impl Sync for Bitmap {}
 /// Maps the SHM bitmap (or a local fallback) exactly once.
 fn bitmap() -> &'static Bitmap {
     BITMAP.get_or_init(|| {
-        let ptr = match std::env::var("SHM_ID") {
-            Ok(key) => map_shm(&key),
-            Err(_) => {
-                eprintln!("[COV] no shared memory bitmap available, using local");
-                // SAFETY: 2MB zeroed box leaked for process lifetime.
-                Box::leak(vec![0u8; SHM_SIZE].into_boxed_slice()).as_mut_ptr()
-            }
+        let ptr = if let Ok(key) = std::env::var("SHM_ID") {
+            map_shm(&key)
+        } else {
+            eprintln!("[COV] no shared memory bitmap available, using local");
+            // SAFETY: 2MB zeroed box leaked for process lifetime.
+            Box::leak(vec![0u8; SHM_SIZE].into_boxed_slice()).as_mut_ptr()
         };
         Bitmap { ptr, len: SHM_SIZE }
     })
@@ -124,7 +124,7 @@ pub(crate) extern "C" fn __sanitizer_cov_trace_pc_guard_init(mut start: *mut u32
         }
         // Force bitmap mapping now so startup prints land before any exec.
         let _ = bitmap();
-        let len = stop.offset_from(start) as usize;
+        let len = usize::try_from(stop.offset_from(start)).expect("guard range end precedes start");
         let mut ranges = RANGES.lock().expect("cov ranges lock");
         if ranges.iter().any(|&(s, _)| s == start as usize) {
             return; // Duplicate init for a known range.
@@ -134,9 +134,9 @@ pub(crate) extern "C" fn __sanitizer_cov_trace_pc_guard_init(mut start: *mut u32
         // per-exec reset renumbers everything anyway.
         let mut next: u32 = ranges
             .iter()
-            .map(|&(_, l)| l as u32)
+            .map(|&(_, l)| u32::try_from(l).unwrap_or(u32::MAX))
             .sum::<u32>()
-            .saturating_sub(len as u32);
+            .saturating_sub(u32::try_from(len).unwrap_or(u32::MAX));
         while start != stop && next < MAX_EDGES {
             next += 1;
             start.write(next);

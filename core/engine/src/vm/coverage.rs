@@ -360,7 +360,6 @@ mod tests {
     #[test]
     fn ic_transitions_emit_cells() {
         use crate::builtins::OrdinaryObject;
-        use crate::object::ObjectInitializer;
         use crate::vm::inline_cache::InlineCache;
         use crate::{JsString, js_string};
 
