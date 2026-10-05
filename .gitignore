@@ -58,3 +58,9 @@ perf.data*
 # Nix
 /.envrc
 /.direnv
+
+# Other
+trajectory-2026-10-03-120536.json
+trajectory-2026-10-03-120916.json
+Implementation_Plan.md
+conversation-2026-10-03-120739.txt
