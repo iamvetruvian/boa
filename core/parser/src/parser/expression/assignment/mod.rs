@@ -18,6 +18,7 @@ use crate::{
     lexer::{Error as LexError, InputElement, TokenKind},
     parser::{
         AllowAwait, AllowIn, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{
             FormalParameterListOrExpression,
             assignment::{
@@ -89,6 +90,10 @@ where
 
     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Expression> {
         cursor.set_goal(InputElement::RegExp);
+
+        // Peeked twice (buffered); the first peek positions the stack check.
+        let token_start = cursor.peek(0, interner).or_abrupt()?.span().start();
+        check_stack(token_start)?;
 
         match cursor.peek(0, interner).or_abrupt()?.kind() {
             // [+Yield]YieldExpression[?In, ?Await]

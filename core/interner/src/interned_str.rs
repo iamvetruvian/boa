@@ -59,8 +59,9 @@ where
     Char: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        // SAFETY: The caller must verify the invariants
-        // specified in the struct definition.
+        // SAFETY: `new` (the only constructor) requires the pointer to be
+        // valid and outliving the value, so every existing `InternedStr`
+        // upholds the struct invariants.
         unsafe { self.as_ref() == other.as_ref() }
     }
 }
@@ -70,9 +71,7 @@ where
     Char: Hash,
 {
     fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        // SAFETY:
-        // The caller must ensure `ptr` is still valid throughout the
-        // lifetime of `self`.
+        // SAFETY: see `eq` above; validity is established by `new`.
         unsafe {
             self.as_ref().hash(state);
         }

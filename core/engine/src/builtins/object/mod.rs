@@ -26,7 +26,9 @@ use crate::{
     native_function::NativeFunction,
     object::{
         FunctionObjectBuilder, IntegrityLevel, JsObject,
-        internal_methods::{InternalMethodPropertyContext, get_prototype_from_constructor},
+        internal_methods::{
+            InternalMethodPropertyContext, check_proto_walk_budget, get_prototype_from_constructor,
+        },
     },
     property::{Attribute, PropertyDescriptor, PropertyKey, PropertyNameKind},
     realm::Realm,
@@ -369,7 +371,9 @@ impl OrdinaryObject {
         let key = args.get_or_undefined(0).to_property_key(context)?;
 
         // 3. Repeat
+        let mut links = 0;
         loop {
+            check_proto_walk_budget(&mut links)?;
             // a. Let desc be ? O.[[GetOwnProperty]](key).
 
             let desc =
@@ -415,7 +419,9 @@ impl OrdinaryObject {
         let key = args.get_or_undefined(0).to_property_key(context)?;
 
         // 3. Repeat
+        let mut links = 0;
         loop {
+            check_proto_walk_budget(&mut links)?;
             // a. Let desc be ? O.[[GetOwnProperty]](key).
 
             let desc =
@@ -729,7 +735,9 @@ impl OrdinaryObject {
         }
         let mut v = v.clone();
         let o = JsValue::new(this.to_object(context)?);
+        let mut links = 0;
         loop {
+            check_proto_walk_budget(&mut links)?;
             v = Self::get_prototype_of(this, &[v], context)?;
             if v.is_null() {
                 return Ok(JsValue::new(false));

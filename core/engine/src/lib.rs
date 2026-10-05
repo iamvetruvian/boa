@@ -355,10 +355,13 @@ impl TestAction {
 }
 
 /// Executes a list of test actions on a new, default context.
+/// Builds a `Context` for unit tests.
+///
+/// Under Miri this avoids OS APIs (wall clock, module-root canonicalization)
+/// that escape the isolated sandbox; otherwise it is a default context.
 #[cfg(test)]
-#[track_caller]
-fn run_test_actions(actions: impl IntoIterator<Item = TestAction>) {
-    let mut context = Context::builder();
+fn test_context() -> Context {
+    let mut builder = Context::builder();
     if cfg!(miri) {
         // Do not use OS APIs when running with Miri to avoid escaping the
         // isolated sandbox.
@@ -367,11 +370,17 @@ fn run_test_actions(actions: impl IntoIterator<Item = TestAction>) {
 
         use crate::{context::time::FixedClock, module::IdleModuleLoader};
 
-        context = context
+        builder = builder
             .clock(Rc::new(FixedClock::from_millis(65535)))
             .module_loader(Rc::new(IdleModuleLoader));
     }
-    run_test_actions_with(actions, &mut context.build().unwrap());
+    builder.build().unwrap()
+}
+
+#[cfg(test)]
+#[track_caller]
+fn run_test_actions(actions: impl IntoIterator<Item = TestAction>) {
+    run_test_actions_with(actions, &mut test_context());
 }
 
 /// Executes a list of test actions on the provided context.

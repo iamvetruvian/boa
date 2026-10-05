@@ -1,0 +1,605 @@
+Muse Code Conversation Export
+=============================
+
+Exported At: 2026-10-03 12:07:39 UTC
+Session: 01a101a6-b0ef-78b1-a4c4-dbddfbda2789
+Workspace: /home/vetruvian/Desktop/boa
+
+## Conversation
+
+❯ summary: ## Primary Request And Intent
+  Implement strong test foundations for Boa before conformance (project 1) or
+  V8-parity (project 2): Phase-0 Pins/inventory/baselines, P1 Regression +
+  tester hardening, P2 Test262 trend gate + gap closure, P3 Differential v1 +
+  P3.5 full-corpus triage + engine-bug filings, then P4 Fuzz Fleet only when P3
+  exit met. Latest instruction: complete P3 as per plan and once P4 can be
+  started, start P4; append deviations to P3 phase and notify.
+
+  ## User Constraints And Preferences
+  Follow Implementation_Plan.md phase-wise; deep-dive before coding. Foundations
+  guarantee improvements never regressions. Load bundled:durable-test-collateral
+  before edits; smallest focused tests. Preserve exact paths/commands/markers;
+  never call visible marker missing. Plan updates append-only. Guarantee P1
+  before P2; report deviations honestly. One-time setup
+  (clones/pins/builds/oracle fetch) done, not pending. Do not commit unasked;
+  store runs in differential-runs/. Fuzz: fixed seeds + regression seeds must
+  pass; no panic/hang/UB on arbitrary bytes with budgets.
+
+  ## Current State
+  Phase-0/P1/P2 complete. P3 + P3.5 full-corpus complete (85,904 cases; 42,726
+  verdicts exported to `tools/differential/corpora/verdicts.toml`; 5 shard gates
+  clean).
+
+  P4 Fuzz Fleet in progress:
+  - Deep-dive done: `tests/fuzz/` 3 targets (`parser-idempotency`, `vm-implied`,
+  `bytecompiler-implied`), `libfuzzer-sys 0.4.13`, `arbitrary 1.4.2`, pinned
+  `nightly-2026-10-01` + `cargo-fuzz 0.13.2` installed.
+  - Harness refactored to lib:
+  `tests/fuzz/src/{lib.rs,common.rs,canonicalize.rs,universe.rs,semantic.rs}`;
+  34 lib tests green; fuzz build zero warnings.
+  - Parser fixes landed: `Num` printer overflow (`1e999`/`- 1e999`), NaN
+  canonicalization, template canonicalization; 500-program differential probe:
+  494 agree / 3 mismatch / 3 one-sided vs jsshell `JavaScript-C128.14.0`.
+  - 2 new engine bugs filed (#20 `destructuring-missing-initializer-accepted`,
+  #21 `bare-using-identifier-rejected`) with repros + seeds; total engine bugs
+  21 (19 + 2).
+  - P4.1 done: `fuzz-smoke` PR job + `fuzz-nightly.yml` (nightly 4h matrix +
+  weekly coverage, llvm-tools), `sync-seeds.sh`, regression `expect` corrected
+  for `huge-sparse-join-abort`/`atomics-wait-finite-timeout`.
+  - P4.2 semantic oracles wired: determinism double-eval, reprint idempotency,
+  metamorphic hook, `BOA_FUZZ_ORACLE` completion-class differential with
+  known-divergence filter + self-retiring test; logic drill 3/3 flagged;
+  bytecompiler compile-determinism.
+  - Soaks: parser 300s 376,147 runs clean; vm 20min 23,929 runs clean;
+  bytecompiler 90s 3,770 runs clean; VM 90s semantic run slow (1 exec/s with
+  oracle-spawn, 802 runs).
+  - P4.3 adversarial targets, P4.4 GC stress, P4.5 sanitizer matrix, P4.6 corpus
+  pipeline, P4.7 Fuzzilli still pending. `verify-baseline.sh` Cargo.lock-dirty
+  expected (new crates uncommitted per no-commit rule).
+
+  ## Files, APIs, Commands, And Tests
+  Files: `Implementation_Plan.md`,
+  `tools/differential/src/{compose.rs,corpus.rs,normalize.rs}`,
+  `tools/differential/corpora/{full.toml,verdicts.toml}`,
+  `tests/fuzz/{Cargo.toml,README.md,src/{lib.rs,common.rs,canonicalize.rs,univer
+  se.rs,semantic.rs},fuzz_targets/{parser-idempotency.rs,vm-implied.rs,bytecompi
+  ler-implied.rs},seeds/*.js,sync-seeds.sh,drill/{inventory.toml,run.sh,logic/{i
+  nventory.toml,run.sh,probes/,patches/}}}`,
+  `.github/workflows/{rust.yml,fuzz-nightly.yml}`,
+  `tests/regression/{regressions.toml,cases/*/repro.js}`,
+  `core/{ast/src/expression/literal/mod.rs,parser/src/...}`.
+  Commands: `cargo test -p boa_differential --bin boa_differential`,
+  `BOA_DIFF_ORACLE=./target/oracle/js cargo test -p boa_differential`, `cargo
+  test -p boa_regression`, `cargo test --lib` (in `tests/fuzz`),
+  `RUSTUP_TOOLCHAIN=nightly-2026-10-01 cargo fuzz build -s none --dev`,
+  `RUSTUP_TOOLCHAIN=nightly-2026-10-01 cargo fuzz run --dev -s none <target> --
+  -max_total_time=<s> -print_final_stats=1`, `cargo fuzz cmin/tmin/coverage`,
+  `BOA_FUZZ_ORACLE=$PWD/target/oracle/js cargo fuzz run ... vm-implied`,
+  `./target/debug/boa_differential run --corpus <toml> --oracle
+  ./target/oracle/js --expected-version JavaScript-C128.14.0 --output <dir>`,
+  `triage --queue <q> --check`, `triage --queue <q> --export <toml>`, `bash
+  scripts/verify-baseline.sh`, `tests/fuzz/drill/run.sh`,
+  `tests/fuzz/drill/logic/run.sh`.
+  Tests: 50 differential bin +5 e2e green; 4 regression green (now 21 entries);
+  32-34 fuzz lib tests green; `overflowing_numeric_literal_round_trips`,
+  canonicalize/universe/semantic suites; logic drill 3/3 flagged.
+
+  ## Decisions And Rationale
+  Foundations-first, append-only plan; phases gated (P1 before P2, P3 exit
+  before P4). Oracle `jsshell JavaScript-C128.14.0` pinned; Node/V8 second
+… output capped
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ I had a discussion about this project (Boa). See discussion.md . The
+  discussion divides further progress of this project into two separate
+  projects: 1. Make Boa fully ECMAScript conformant. 2. Make Boa technologically
+  comparable to V8. But even before any of these, we need to implement some very
+  important pre-requisites so that further implementations are guaranteed to be
+  improvements and never regressions (important foundations). So the
+  Implementation_Plan.md outlines the implementation of a very strong foundation
+  phase-wise (drastically strengthening the testing suite). I want you to
+  carefully go through the plan. Then do a deep dive of code relevant to
+  "phase-0 Pins, inventory, baselines (everything else stands on this)", and
+  then carefully implement this phase.
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ Now continue with careful implementation of "P1 - Regression infrastructure +
+  tester hardening". First carefully read everything mentioned in this phase:
+  The goal, the work items, the implementation notes. Deeply explore all
+  existing code that is relevant to this phase so that you know exactly how to
+  implement this phase and when can you call this phase "completed".
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ Did you explore this: "One curiosity I’ll chase after completion: the narrow
+  String-subset trim run showed 106 broken while the broader test/built-ins run
+  shows 105 – a one-test delta worth identifying (possibly order/flakiness,
+  exactly what the P1.6 quarantine protocol is for). The gate verdict is
+  unaffected either way."
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ So can you guarantee that P1 has been completely implemented and we are good
+  to move to P2? Also during your actual implementation, did you need to do
+  something different than what the plan actually proposed or was the plan
+  completely correct about P1 and you followed it exactly? If you did some thing
+  different, I would like you to append relevant notest to the P1 phase in the
+  plan. And also add this guideline to the plan that during actual
+  implementation if it is discovered that something needs to be done slightly
+  differently than what the plan actually lays out, then append what exactly you
+  do differently (and why so) to that respective phase section. This change will
+  be "append-only" and will never actually edit or change the existing plan. You
+  are only allowed to update the plan by appending "notes" for the relevant
+  phase.
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ Ok. Now carefully continue with "P2 — Test262 trend gate + systematic gap
+  closure (conformance becomes a ratchet)". First carefully read the complete P2
+  section and then the relevant code to decide how you should start implementing
+  elegantly. Then start implementation.
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ Ok now similarly carefully continue with P3
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ carefully continue with P3
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ continue
+
+◆ [Previous turn ended without an assistant reply.]
+
+❯ Then complete the P3 as per plan and once you can guarantee that P4 can be
+  started, then start P4. If during this P3 completion, you find something else,
+  then append it to the P3 phase section and also notify me about it.
+
+◆ Ran sed -n '75,110p' core/runtime/src/extensions.rs; grep -n 'winter… · ✓ · 0s
+├ sed -n '75,110p' core/runtime/src/extensions.rs; grep -n '
+│ wintertc\|boa_wintertc' core/runtime/Cargo.toml | head -3
+├ exit 0
+└
+  #[cfg(feature = "url")]
+  impl RuntimeExtension for UrlExtension {
+      fn register(self, realm: Option<Realm>, context: &mut Context) -> JsResul…
+          crate::url::Url::register(realm, context)
+      }
+  }
+
+  … 21 lines omitted
+
+  #[cfg(feature = "process")]
+  impl RuntimeExtension for ProcessExtension {
+      fn register(self, _realm: Option<Realm>, context: &mut Context) -> JsResu…
+          crate::process::Process::register(context)
+      }
+  }
+  16:boa_wintertc.workspace = true
+
+◆ Ran grep -n 'struct FetchExtension' -B3 -A8 core/runtime/src/extensi… · ✓ · 0s
+├ grep -n 'struct FetchExtension' -B3 -A8 core/runtime/src/extensions.rs | head
+│ -16; grep -n 'pub fn register\b' -A 12 core/runtime/src/lib.rs | head -16
+├ exit 0
+└ 112-/// Register the `fetch` JavaScript API with the specified [`crate::fetch…
+  113-#[cfg(feature = "fetch")]
+  114-#[derive(Debug)]
+  115:pub struct FetchExtension<F: crate::fetch::Fetcher>(pub F);
+  116-
+  117-#[cfg(feature = "fetch")]
+  118-impl<F: crate::fetch::Fetcher + Debug + 'static> RuntimeExtension for Fet…
+  119-    fn register(self, realm: Option<Realm>, context: &mut Context) -> JsR…
+  … 9 lines omitted
+  177-    (
+  178-        Base64Extension,
+  179-        TimeoutExtension,
+  180-        EncodingExtension,
+  181-        MicrotaskExtension,
+  182-        StructuredCloneExtension,
+  183-        #[cfg(feature = "url")]
+  184-        extensions::UrlExtension,
+
+◆ Ran grep -n 'fn is_valid_reason_phrase' -A 12 core/runtime/src/fetch… · ✓ · 0s
+├ grep -n 'fn is_valid_reason_phrase' -A 12 core/runtime/src/fetch/response.rs;
+│ echo ===; grep -n 'fn append' -A 30 core/runtime/src/fetch/headers.rs | head -
+│ 45
+├ exit 0
+└ 115:fn is_valid_reason_phrase(s: &str) -> bool {
+  116-    s.bytes()
+  117-        .all(|b| matches!(b, 0x09 | 0x20 | 0x21..=0x7E | 0x80..=0xFF))
+  118-}
+  119-
+  120-/// The `Response` interface of the Fetch API represents the response to …
+  121-//
+  122-// You can create a new Response object using the `Response` constructor,…
+  … 29 lines omitted
+  166-    /// Returns an error if the headers iterator cannot be created.
+  167-    #[boa(method)]
+  168-    pub fn entries(this: JsClass<Self>, context: &mut Context) -> JsResul…
+  169-        HeadersIterator::create_headers_iterator(this.inner(), IterationK…
+  170-    }
+  171-
+  172-    /// Executes a provided function once for each key/value pair in the …
+  173-    ///
+
+❯ Have you documented all these bugs and the discoveries you made that are
+  relevant to solving those bugs (so that someone else would be able to build
+  upon those discoveries to solve them instead of re-discovering it themselves)?
+  And are we ready to proceed further into P4? (P4.4 and onwards?)
+
+◆ Ran ls tests/regression/cases/cyclic-proto-walk-stack-overflow/ test… · ✓ · 0s
+├ ls tests/regression/cases/cyclic-proto-walk-stack-overflow/
+│ tests/regression/cases/parser-deep-nesting-stack-overflow/; echo ===; find
+│ tests/regression/cases -type f | grep -v 'repro.js' | head -5; echo "
+│ (non-repro files above, if any)"
+├ exit 0
+└ tests/regression/cases/cyclic-proto-walk-stack-overflow/:
+  repro.js
+
+  tests/regression/cases/parser-deep-nesting-stack-overflow/:
+  repro.js
+  ===
+  (non-repro files above, if any)
+
+◆ Wrote /home/vetruvian/Desktop/boa/tests/regression/cases/parser-deep-nesting-s
+tack-overflow/NOTES.md (+119)
+    1 +# Bug #22 — Parser stack overflow on deep nesting: discovery notes
+    2 +
+    3 +Filing: `parser-deep-nesting-stack-overflow` in `regressions.toml` (lande
+       d).
+    4 +Repro: `repro.js` (100k-deep parens → `SyntaxError`, deterministic on eve
+       ry
+    5 +stack/profile). Fuzz seed: `tests/fuzz/seeds/parser-deep-nesting-stack-ov
+       erflow.js`.
+    6 +Unit test: `core/parser/src/parser/tests/mod.rs::deep_nesting_hits_depth_
+       limit`.
+    7 +
+    8 +## Observed behavior (pre-fix)
+    9 +
+   10 +- `boa` CLI aborted with `thread 'main' has overflowed its stack`
+   11 +  (SIGABRT, exit 134) on ~300 nested parens; 200 evaluated fine (32 MB
+   12 +  default main stack on the dev machine — check yours with `ulimit -s`).
+   13 +- Same abort for brackets `[[[…]]]`, braces `{a:{a:…}}`; blocks `{ { … }
+       }`
+   14 +  survived much deeper (cheaper path, see below).
+   15 +- jsshell (pinned oracle `JavaScript-C128.14.0`) evaluates 500-deep fine
+       and
+   16 +  throws catchable `InternalError: too much recursion` (exit 3) from ~100
+       0
+   17 +  up. Reference shape: accept hundreds, clean error beyond — never abort.
+   18 +- `JSON.parse` of deep input was already safe (pre-existing
+   19 +  `serde_json`-level "recursion limit exceeded" error, separate mechanism
+       ).
+   20 +
+   21 +## Root-cause measurements
+   22 +
+   23 +Per-construct abort thresholds, dev-profile CLI (`target/debug/boa`):
+   24 +
+   25 +| construct      | 2 MB stack | 8 MB stack | 32 MB stack |
+   26 +|----------------|------------|------------|-------------|
+   27 +| parens `(((`   | 10 ✓ / 15 ✗ | 50 ✓ / 100 ✗ | 200 ✓ / 300 ✗ |
+   28 +| brackets `[[[` | 10 ✓ / 15 ✗ | — | 500 ✗ |
+   29 +| braces `{a:`   | 10 ✓ / 15 ✗ | — | — |
+   30 +| blocks `{`     | 50+ ✓ | — | — |
+   31 +
+   32 +Method: `python3 -c` generates the file, `( ulimit -s <KB>; ./target/debu
+       g/boa
+   33 +file )` pins the main-thread stack. Note the dev machine default is
+   34 +32 MB (`ulimit -s` → 32768), NOT 8 MB — an early 8 MB-explicit run
+   35 +contradicted the default-stack runs until this was found.
+   36 +
+   37 +gdb backtrace at the overflow (test-thread probe, since aborts kill the
+   38 +runner — probe one depth per process via env var) showed a clean 18-frame
+   39 +cycle per paren level (binary-op cascade ×7 + conditional + assignment +
+   40 +expression + cover-primary + primary + member + lhs + update + exponent —
+   41 +no hidden multiplier, no backtracking; the cover grammar is single-pass).
+   42 +Per-frame stack deltas (dev): 4–19 KB each, **~150 KB per level total**.
+   43 +
+   44 +The bloat is NOT the AST values (`size_of::<Expression>()` is 192 B,
+   45 +`Statement` 464 B, `Token` small). It is unoptimized codegen: large `matc
+       h`
+   46 +temporaries with no stack-slot reuse across arms, × 18 frames. Release
+   47 +frames are far smaller (inlining), so any fixed depth limit fit for
+   48 +dev/2 MB (~8!) would cripple release (which handles ~450+ today), and any
+   49 +limit fit for release would still abort dev/2 MB. Hence a fixed counter
+   50 +was rejected (see below).
+   51 +
+   52 +## Rejected alternatives
+   53 +
+   54 +- **Fixed depth counter on `Parser`**: doesn't work structurally (recursi
+       on
+   55 +  flows through `TokenParser::parse` on `&mut Cursor`, never touching
+   56 +  `Parser`), and no single value is safe on 2 MB dev yet non-crippling on
+   57 +  8 MB release. Dead on both counts.
+   58 +- **Boxing one big AST type**: measured — no big type exists (see sizes
+   59 +  above). Dead.
+   60 +- **`stacker::grow` (segmented stack)**: unbounded heap on adversarial
+   61 +  input (1 MB of parens → GBs of segments); still needs a cap, which land
+       s
+   62 +  back at the fixed-limit problem. Dead.
+   63 +- **Pratt-parser rewrite / cascade compression**: correct long-term fix
+   64 +  (frame diet), but project-1-scale surgery. Explicitly deferred; see
+   65 +  follow-ups.
+   66 +- **Thread-per-parse with a big stack**: breaks wasm (no threads),
+   67 +  per-parse spawn overhead, and STILL needs a profile-dependent backstop.
+   68 +  Dead.
+   69 +- **Hand-rolled libc stack check**: reimplementing `psm` badly (platform
+   70 +  `unsafe`, ASAN/Miri/wasm edge cases). Use the real crate instead.
+   71 +
+   72 +## The fix
+   73 +
+   74 +Stack-aware guard via `rust-lang/stacker 0.1.25`
+   75 +(`remaining_stack()`, ~5 ns/check — the OS limit is cached in TLS, so no
+   76 +per-check libc cost), 256 KB red zone, at the 8 recursion choke points
+   77 +audited by reading every `TokenParser::parse` for self-recursion:
+   78 +`PrimaryExpression`, `Statement`, both binding patterns (mutually
+   79 +recursive), `UnaryExpression`, `AssignmentExpression`,
+   80 +`ExponentiationExpression`, `MemberExpression` (`new`-callee). Everything
+   81 +else funnels through these (conditional/yield/spread → assignment;
+   82 +update/await → unary; call args/elements/substitutions → assignment;
+   83 +optional chains and statement lists are iterative `loop`s — verified, not
+   84 +assumed). Tripping returns catchable `SyntaxError: Maximum call stack siz
+       e
+   85 +exceeded` (V8's wording).
+   86 +
+   87 +Structural notes for future editors:
+   88 +
+   89 +- The guard is a free function (`cursor::check_stack`), not a method:
+   90 +  call sites hold a live `&Token` borrow from `peek`, so any `&mut cursor
+       `
+   91 +  call — including a second `peek` — fails borrowck. The free function
+   92 +  takes only the owned `Position`.
+   93 +- Error uses `Error::general` (existing catch-all variant); no new error
+   94 +  variant was needed.
+   95 +- wasm/Miri (`remaining_stack() == None`) keep historical behavior
+   96 +  (documented in code): a wasm trap aborts the instance, not the host.
+   97 +- The parse guard protects all downstream recursion (scope analysis,
+   98 +  compilation, printing) by construction: the AST can never exceed the
+   99 +  guard-implied depth, and downstream frames are far smaller than parse
+  100 +  frames on the same (unwound) stack.
+  101 +- Effective depth adapts to stack/profile like SpiderMonkey/V8. Only
+  102 +  clearly-shallow (must parse) and clearly-absurd (must error) depths are
+  103 +  asserted anywhere; middle depths are environment-dependent by design.
+  104 +
+  105 +## Test262 margin
+  106 +
+  107 +Crude whole-corpus scan (strip strings/comments, track `()[]{}` depth):
+  108 +max nesting is 64 in `test/language/statements/function/S13.2.1_A1_T1.js`
+  109 +(mixed brackets; blocks are cheap). That suite passes 451/451 even in
+  110 +dev-mode (stricter than CI's release). Full release suite, CI-exact
+  111 +invocation: 51,440 pass (+3 vs P0 baseline, all pre-existing P1/P2 fixes)
+       ,
+  112 +0 panics/timeouts/crashes, strict `--fail-on=regression` gate exit 0.
+  113 +
+  114 +## Follow-ups (project 1, not foundations)
+  115 +
+  116 +- Frame diet (cascade compression / Pratt parsing) to raise accepted dept
+       h
+  117 +  toward jsshell (~500–1000) while keeping the guard as the backstop.
+  118 +- Threshold tuning if conformance tests ever nest near the trip zone.
+  119 +- `stacker` version bumps track with the workspace lockfile.
+
+◆ Wrote /home/vetruvian/Desktop/boa/tests/regression/cases/cyclic-proto-walk-sta
+ck-overflow/NOTES.md (+93)
+   1 +# Bug #13 — Prototype-cycle walk abort/hang: discovery notes
+   2 +
+   3 +Filing: `cyclic-proto-walk-stack-overflow` in `regressions.toml` (landed).
+   4 +Repro: `repro.js` (proxy-mediated cycle + `leaf.toString` → catchable
+   5 +`RangeError`). Fuzz seed: `tests/fuzz/seeds/cyclic-proto-walk-stack-overfl
+      ow.js`.
+   6 +Unit test: `core/engine/src/object/tests.rs::cyclic_prototype_walk_throws`
+   7 +(7 probes: get/set/has/instanceof/isPrototypeOf/lookupGetter/lookupSetter)
+      .
+   8 +
+   9 +## Observed behavior (pre-fix)
+  10 +
+  11 +- The seed aborted the process: `cli-exec` died with SIGSEGV (exit 139) on
+  12 +  its first fuzz run from this seeded input — no sanitizer artifact (see
+  13 +  `drill/README.md`, "Triaging a crash without sanitizer artifacts").
+  14 +- `ordinary_get` recursed natively once per prototype link
+  15 +  (`object/internal_methods/mod.rs`, `parent.__get__(…)`); on the cycle
+  16 +  `root → leaf → proxy → target → root` this never terminates.
+  17 +- The iterative walks (`instanceof`, `isPrototypeOf`, legacy
+  18 +  `__lookupGetter__`/`__lookupSetter__`) did not crash — they HUNG (stack-
+  19 +  flat `loop`, infinite on a cycle). Found during the fix, not before it.
+  20 +
+  21 +## Why the filed fix model was wrong
+  22 +
+  23 +The filing suggested "consulting the VM recursion limit". That limit
+  24 +(`Context::check_runtime_limits`, `vm/mod.rs`) counts **VM frames**
+  25 +(`frames.len() + host_call_depth ≤ 512`) — and the property walk pushes
+  26 +no frames (the proxy in the cycle has no traps, so no JS ever runs). The
+  27 +check is blind here; wiring it in would have changed nothing. Verified by
+  28 +reading both sides, not by guessing.
+  29 +
+  30 +## Reference-engine behavior (verified, not assumed)
+  31 +
+  32 +- jsshell (pinned oracle): `InternalError: too much recursion` (exit 3).
+  33 +- node v26 (V8): catchable `RangeError: Maximum call stack size exceeded`
+  34 +  for property get AND `instanceof` (via `[Symbol.hasInstance]`) AND
+  35 +  non-member `isPrototypeOf` AND `__lookupGetter__`. (Careful when
+  36 +  re-probing `isPrototypeOf`: `isPrototypeOf.call(root, leaf)` FINDS root
+  37 +  in 3 steps and returns — you must query a non-member to traverse the
+  38 +  cycle.)
+  39 +- The fix matches V8 exactly: native catchable `RangeError` with V8's
+  40 +  exact message, on all 7 walk shapes.
+  41 +
+  42 +## The fix (two mechanisms, not one)
+  43 +
+  44 +Recursive walks (`ordinary_get`, `ordinary_set`, `ordinary_has_property`):
+  45 +stack-aware guard via `rust-lang/stacker` (already in the workspace for
+  46 +bug #22), 256 KB red zone, throwing the V8-identical `RangeError`.
+  47 +
+  48 +Iterative walks (`ordinary_has_instance`, `is_prototype_of`,
+  49 +`legacy_lookup_getter`, `legacy_lookup_setter`): a **100k-link iteration
+  50 +budget** throwing the same error. A stack check provably cannot work in a
+  51 +stack-flat loop — the first version of this fix hung the unit test at 99%
+  52 +CPU for 25 minutes before that was understood. The budget also covers a
+  53 +hostile `getPrototypeOf` trap returning fresh objects forever (infinite
+  54 +novel chain, no cycle, no stack growth — untrippable by any stack check).
+  55 +
+  56 +Completeness argument (audited, in the code docs): proxy targets are
+  57 +immutable, so proxy forwarding always terminates at a non-proxy object —
+  58 +only `__proto__`-mutable links can cycle, and every such walk passes
+  59 +through one of the six guarded sites. `ordinary_set_prototype_of`'s own
+  60 +cycle-check loop needs no guard (it only follows ordinary links, which
+  61 +form a DAG by construction, and breaks at the first non-ordinary proto).
+  62 +Accessor calls, traps, and `super` go through frame-counted call
+  63 +machinery (existing limits apply).
+  64 +
+  65 +Deliberate divergences, documented:
+  66 +
+  67 +- Plain JS recursion still throws Boa's uncatchable engine
+  68 +  `RuntimeLimitError` (verified: try/catch cannot catch it); the walks
+  69 +  throw catchable `RangeError`. Unifying both to V8's catchable
+  70 +  `RangeError` is project-1 follow-up.
+  71 +- The 100k budget errs toward accepting deep-but-finite chains (V8's
+  72 +  stack-implied trip zone starts lower); succeeding where V8 errors is
+  73 +  benign (bounded ~0.5 s worst case), crashing/hanging is not.
+  74 +
+  75 +## Verification performed
+  76 +
+  77 +- All 7 CLI probes → catchable `RangeError`, exit 0 under try/catch; seed
+  78 +  alone → clean uncaught `RangeError`, exit 1; normal lookups byte-
+  79 +  identical (`1 false true true` sanity).
+  80 +- Engine suite 1,128/1,128; Test262 `built-ins/{Object,Proxy,Reflect}` at
+  81 +  100%; full release suite CI-exact with strict `--fail-on=regression`
+  82 +  gate exit 0 (see bug #22's notes for the numbers).
+  83 +- Regression entry landed with `throw RangeError` and mutation-verified
+  84 +  to execute (wronging the expectation fails naming the entry).
+  85 +
+  86 +## Follow-ups (project 1, not foundations)
+  87 +
+  88 +- Unify JS-recursion `RuntimeLimitError` to catchable `RangeError` (V8
+  89 +  parity for `function f(){f()}f()`).
+  90 +- `structuredClone`/own-graph deep-nesting recursion is a different walk
+  91 +  family with existing handling — untouched; the fuzzer owns it.
+  92 +- OOM-guard policy (`huge-sparse-join-abort`, still live drill bait) is
+  93 +  engine design work, separate from this fix.
+
+◆ Edited /home/vetruvian/Desktop/boa/tests/fuzz/drill/README.md (+20 −0)
+  47  a human must confirm whether they are the same bug.
+  48 +
+  49 +## Triaging a crash without sanitizer artifacts
+  50 +
+  51 +The fleet runs `-s none` (no sanitizer), so a SIGSEGV/SIGABRT kills the
+  52 +fuzzer child WITHOUT writing a `crash-*` artifact and without printing the
+  53 +offending input — libFuzzer warns about the missing
+  54 +`__sanitizer_acquire_crash_state` hooks on every run. When a target dies
+  55 +this way:
+  56 +
+  57 +1. Don't re-fuzz blindly. First sweep the seeds directly through the
+  58 +   target binary — a seeded reproducer is the most likely cause and this
+  59 +   identifies it in seconds:
+  60 +   `for f in corpus/<target>/*; do target/x86_64-unknown-linux-gnu/debug/<
+      target> "$f" || echo "CRASH: $f"; done`
+  61 +   (This is exactly how `cli-exec`'s SIGSEGV was traced to the
+  62 +   `cyclic-proto-walk-stack-overflow` seed.)
+  63 +2. If no seed reproduces, the input was fuzzer-generated and is lost;
+  64 +   re-run with `-s address` (slower, but then artifacts work) or narrow
+  65 +   with `-seed=` bisection.
+  66 +3. Minimize with `cargo fuzz tmin` once the input is in hand; the drill's
+  67 +   `fuzz-target` harness runs the `tmin` leg automatically.
+
+◆ Ran cargo test -p boa_regression --test regression_db 2>&1 | grep -E… · ✓ · 0s
+├ cargo test -p boa_regression --test regression_db 2>&1 | grep -E '^test |test
+│ result' | head -6
+├ exit 0
+└ test tests::runner_requires_seed_and_link_or_reason ... ok
+  test tests::runner_accepts_pass_and_throw ... ok
+  test tests::runner_rejects_mismatches ... ok
+  test regression_database ... ok
+  test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; f…
+
+◆ Both answers, honestly:
+
+  1. Documentation — it was partial, now fixed. The fixes were already durable
+  (code docs explaining mechanism and rationale, unit tests, landed DB entries
+  with corrected root causes, repros, seeds). But the discovery trails existed
+  only in session history: the gdb frame table and ~150KB/level measurement, why
+  six alternative fixes were rejected, the jsshell/node verification protocols,
+  the VM frame-limit blindness, the iterative-loop hang lesson. Someone tuning
+  the guard in project 1 would have had to re-derive all of it. I've now
+  written:
+
+  • tests/regression/cases/parser-deep-nesting-stack-overflow/NOTES.md —
+    threshold matrix, gdb findings, rejected alternatives with reasons,
+    structural notes (free-function borrowck constraint, wasm fallback), Test262
+    margin (max nesting 64), project-1 follow-ups.
+  • tests/regression/cases/cyclic-proto-walk-stack-overflow/NOTES.md — why the
+    filed fix model was wrong, V8/node verification results (including the
+    isPrototypeOf non-member probing trap), the two-mechanism fix rationale,
+    completeness audit, deliberate divergences.
+  • A "Triaging a crash without sanitizer artifacts" section in
+    tests/fuzz/drill/README.md — the seed-sweep method that identified the
+    SIGSEGV in seconds.
+
+  Regression suite still 4/4 with the new files in place. The only thing left
+  session-only is ephemeral (fuzz throughput numbers).
+
+  2. Ready for P4.4+? Yes. P4.3's exit is fully evidenced: 5 targets smoking
+  clean, CI wired, strict Test262 gate green (+3, −0), drills maintained, docs
+  written. P4.4's deep-dive is also done — GC code matches the plan nearly
+  line-for-line, and the design is worked out: gc_set_stress(Option<NonZeroU64>)
+  thread-local knob bypassing adaptive growth, normal-vs-stress differential in
+  vm-implied (sound because the a-h universe can't spell WeakRef), a
+  string-match filter for cli-exec's stress leg, and a tester --gc-stress flag
+  for scheduled Test262-under-stress with compare gating. The deterministic-host
+  freeze it depended on is already landed.
+
+  Two non-blocking caveats: the crash-drill gate (5/5) needs 3 more historical
+  crashers, which only continued fleet runtime can supply — that's expected, not
+  a blocker. And the tree keeps growing uncommitted (including two
+  fix_commit = "pending" placeholders) — worth a commit before P4.4 adds more,
+  whenever you're ready.
+
+  session 01a101a6-b0ef-78b1-a4c4-dbddfbda2789 does not record its original
+  provider; using resolved default provider meta
+
+  session 01a101a6-b0ef-78b1-a4c4-dbddfbda2789 does not record a usable model;
+  using resolved default model muse-spark-1.3-contributor
+
+❯ okay then lets continue with phase-4
+
+◆ Loaded skill workflow-authoring · built-in
+◆ Loaded skill read-session · built-in
+
+◆ model failed: API error 400 [request_id=e0caf7b3-cbed-4984-8c61-dfc7f9c88df2]:
+  reasoning `encrypted_content` was not issued to this caller
+  (invalid_request_error)
+
+  Trajectory exported to:
+  /home/vetruvian/Desktop/boa/trajectory-2026-10-03-120536.json
+

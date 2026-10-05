@@ -1,4 +1,4 @@
-use super::internal_methods::InternalMethodPropertyContext;
+use super::internal_methods::{InternalMethodPropertyContext, check_proto_walk_budget};
 use crate::js_error;
 use crate::value::JsVariant;
 use crate::{
@@ -1525,7 +1525,9 @@ impl JsValue {
         })?;
 
         // 6. Repeat,
+        let mut links = 0;
         loop {
+            check_proto_walk_budget(&mut links)?;
             // a. Set O to ? O.[[GetPrototypeOf]]().
             object = match object
                 .__get_prototype_of__(&mut InternalMethodPropertyContext::new(context))?

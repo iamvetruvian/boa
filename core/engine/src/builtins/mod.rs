@@ -408,7 +408,11 @@ pub(crate) fn set_default_global_bindings(context: &mut Context) -> JsResult<()>
     global_binding::<Set>(context)?;
     global_binding::<String>(context)?;
     global_binding::<RegExp>(context)?;
-    global_binding::<BuiltinTypedArray>(context)?;
+    // No `TypedArray` global: the spec lists no such binding (SS 18) and
+    // %TypedArray% is intrinsic-only. `BuiltinTypedArray::init` above still
+    // creates the intrinsic; test262's testTypedArray.js harness (which
+    // asserts the global) is served by runner-side injection in the tester
+    // and the differential corpus, like other runners do.
     global_binding::<Int8Array>(context)?;
     global_binding::<Uint8Array>(context)?;
     global_binding::<Uint8ClampedArray>(context)?;

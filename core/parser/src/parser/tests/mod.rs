@@ -830,3 +830,26 @@ fn invalid_arrow_function() {
     check_invalid_script(r#"(!()=>"#);
     check_invalid_script(r#"!()=>{}"#);
 }
+
+/// Parser recursion guard (bug #22): absurd nesting must fail with a
+/// catchable error on every stack and profile, while shallow nesting
+/// parses. Middle depths are environment-dependent and asserted nowhere.
+#[test]
+fn deep_nesting_hits_depth_limit() {
+    // Absurd everywhere: 100k levels would need gigabytes of stack.
+    let deep = format!("{}1{}", "(".repeat(100_000), ")".repeat(100_000));
+    let err = Parser::new(Source::from_bytes(&deep))
+        .parse_script(&Scope::new_global(), &mut Interner::default())
+        .expect_err("100k-deep nesting must fail");
+    assert!(
+        format!("{err:?}").contains("Maximum call stack size exceeded"),
+        "unexpected error: {err:?}"
+    );
+
+    // Shallow everywhere: parses on any stack in any profile.
+    assert!(
+        Parser::new(Source::from_bytes("((((1))))"))
+            .parse_script(&Scope::new_global(), &mut Interner::default())
+            .is_ok()
+    );
+}

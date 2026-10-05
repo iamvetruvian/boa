@@ -1,137 +1,139 @@
-use super::Attribute;
+mod miri {
+    use super::super::Attribute;
 
-#[test]
-fn writable() {
-    let attribute = Attribute::WRITABLE;
+    #[test]
+    fn writable() {
+        let attribute = Attribute::WRITABLE;
 
-    assert!(attribute.writable());
-}
+        assert!(attribute.writable());
+    }
 
-#[test]
-fn enumerable() {
-    let attribute = Attribute::ENUMERABLE;
+    #[test]
+    fn enumerable() {
+        let attribute = Attribute::ENUMERABLE;
 
-    assert!(attribute.enumerable());
-}
+        assert!(attribute.enumerable());
+    }
 
-#[test]
-fn configurable() {
-    let attribute = Attribute::CONFIGURABLE;
+    #[test]
+    fn configurable() {
+        let attribute = Attribute::CONFIGURABLE;
 
-    assert!(attribute.configurable());
-}
+        assert!(attribute.configurable());
+    }
 
-#[test]
-fn writable_and_enumerable() {
-    let attribute = Attribute::WRITABLE | Attribute::ENUMERABLE;
+    #[test]
+    fn writable_and_enumerable() {
+        let attribute = Attribute::WRITABLE | Attribute::ENUMERABLE;
 
-    assert!(attribute.writable());
-    assert!(attribute.enumerable());
-}
+        assert!(attribute.writable());
+        assert!(attribute.enumerable());
+    }
 
-#[test]
-fn enumerable_configurable() {
-    let attribute = Attribute::ENUMERABLE | Attribute::CONFIGURABLE;
+    #[test]
+    fn enumerable_configurable() {
+        let attribute = Attribute::ENUMERABLE | Attribute::CONFIGURABLE;
 
-    assert!(!attribute.writable());
+        assert!(!attribute.writable());
 
-    assert!(attribute.enumerable());
-    assert!(attribute.configurable());
-}
+        assert!(attribute.enumerable());
+        assert!(attribute.configurable());
+    }
 
-#[test]
-fn writable_enumerable_configurable() {
-    let attribute = Attribute::WRITABLE | Attribute::ENUMERABLE | Attribute::CONFIGURABLE;
+    #[test]
+    fn writable_enumerable_configurable() {
+        let attribute = Attribute::WRITABLE | Attribute::ENUMERABLE | Attribute::CONFIGURABLE;
 
-    assert!(attribute.writable());
-    assert!(attribute.enumerable());
-    assert!(attribute.configurable());
-}
+        assert!(attribute.writable());
+        assert!(attribute.enumerable());
+        assert!(attribute.configurable());
+    }
 
-#[test]
-fn default() {
-    let attribute = Attribute::default();
+    #[test]
+    fn default() {
+        let attribute = Attribute::default();
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
-}
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 
-#[test]
-fn clear() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn clear() {
+        let mut attribute = Attribute::default();
 
-    attribute.clear();
+        attribute.clear();
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
 
-    assert!(attribute.is_empty());
-}
+        assert!(attribute.is_empty());
+    }
 
-#[test]
-fn set_writable_to_true() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_writable_to_true() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_writable(true);
+        attribute.set_writable(true);
 
-    assert!(attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
-}
+        assert!(attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 
-#[test]
-fn set_writable_to_false() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_writable_to_false() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_writable(false);
+        attribute.set_writable(false);
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
-}
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 
-#[test]
-fn set_enumerable_to_true() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_enumerable_to_true() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_enumerable(true);
+        attribute.set_enumerable(true);
 
-    assert!(!attribute.writable());
-    assert!(attribute.enumerable());
-    assert!(!attribute.configurable());
-}
+        assert!(!attribute.writable());
+        assert!(attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 
-#[test]
-fn set_enumerable_to_false() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_enumerable_to_false() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_enumerable(false);
+        attribute.set_enumerable(false);
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
-}
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 
-#[test]
-fn set_configurable_to_true() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_configurable_to_true() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_configurable(true);
+        attribute.set_configurable(true);
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(attribute.configurable());
-}
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(attribute.configurable());
+    }
 
-#[test]
-fn set_configurable_to_false() {
-    let mut attribute = Attribute::default();
+    #[test]
+    fn set_configurable_to_false() {
+        let mut attribute = Attribute::default();
 
-    attribute.set_configurable(false);
+        attribute.set_configurable(false);
 
-    assert!(!attribute.writable());
-    assert!(!attribute.enumerable());
-    assert!(!attribute.configurable());
+        assert!(!attribute.writable());
+        assert!(!attribute.enumerable());
+        assert!(!attribute.configurable());
+    }
 }

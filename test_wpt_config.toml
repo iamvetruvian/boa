@@ -1,1 +1,16 @@
 rev = "82a84e1842d583f1f197d64950453222b9f52c67"
+
+[ignored]
+# Every entry is audited: pattern, reason, owner, expiry (+ optional link,
+# work_item). Matching: substring on the WPT-relative path
+# (documented in tests/wpt/src/collect.rs).
+tests = [
+    { pattern = "console-log-large-array.any.js", reason = "too slow for the suite (large-array console stress)", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-console-perf" },
+    { pattern = "url-origin.any.js", reason = "fetch is not defined", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-url-fetch" },
+    { pattern = "url-setters.any.js", reason = "fetch is not defined", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-url-fetch" },
+    { pattern = "url-constructor.any.js", reason = "fetch is not defined", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-url-fetch" },
+    { pattern = "evil-spec-example", reason = "string-eval form of setTimeout unimplemented in boa_runtime", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-timers-eval" },
+    { pattern = "textdecoder-", reason = "better TextDecoder encoding/options support needed", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-encoding" },
+    { pattern = "textencoder-constructor-non-utf", reason = "legacy non-UTF encodings unsupported (IBM866, ISO-8859-*, windows-*, GBK, Big5, Shift_JIS, ...)", link = "https://encoding.spec.whatwg.org/#names-and-labels", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-encoding" },
+    { pattern = "textencoder-utf16-surrogates", reason = "better TextEncoder encoding/options support needed", link = "", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.wpt-encoding" },
+]

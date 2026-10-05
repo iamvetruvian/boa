@@ -506,6 +506,31 @@ macro_rules! generate_opcodes {
                     ),*
                 }
             }
+
+            /// Fallible sibling of [`next_instruction`](Self::next_instruction)
+            /// for the P5.1 bytecode verifier: returns `None` instead of
+            /// panicking when the opcode byte is missing or the operands are
+            /// truncated. Total over all inputs.
+            #[allow(unused_parens)]
+            pub(crate) fn try_next_instruction(&self, pc: usize) -> Option<(Instruction, usize)> {
+                let bytes = &self.bytes;
+                let opcode = Opcode::decode(*bytes.get(pc)?);
+
+                match opcode {
+                    $(
+                        Opcode::$Variant => {
+                            // `pc < bytes.len()` (checked above), so `pc + 1` cannot overflow.
+                            let (($($($FieldName),*)?), read_size) =
+                                <($($($FieldType),*)?)>::decode_checked(bytes, pc + 1)?;
+                            Some((Instruction::$Variant $({
+                                $(
+                                    $FieldName: $FieldName
+                                ),*
+                            })?, read_size))
+                        }
+                    ),*
+                }
+            }
         }
     }
 }

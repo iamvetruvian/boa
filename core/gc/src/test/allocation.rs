@@ -34,7 +34,9 @@ mod miri {
     }
 
     #[test]
-    // Takes too long to finish in miri
+    // MIRI-IGNORE: builds a 1M-node `Gc` chain; each node is a tracked Miri
+    // allocation, so this takes far too long (and too much RSS) under Miri.
+    // Still runs in the normal suite.
     #[cfg_attr(miri, ignore)]
     fn gc_recursion() {
         run_test(|| {

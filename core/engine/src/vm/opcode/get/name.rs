@@ -3,7 +3,10 @@ use crate::{
     error::JsNativeError,
     object::{internal_methods::InternalMethodPropertyContext, shape::slot::SlotAttributes},
     property::PropertyKey,
-    vm::opcode::{IndexOperand, Operation, RegisterOperand},
+    vm::{
+        CapturedBinding,
+        opcode::{IndexOperand, Operation, RegisterOperand},
+    },
 };
 
 /// `GetName` implements the Opcode Operation for `Opcode::GetName`
@@ -134,8 +137,12 @@ impl GetLocator {
         let mut binding_locator =
             context.vm.frame().code_block.bindings[usize::from(index)].clone();
         context.find_runtime_binding(&mut binding_locator)?;
+        let initialized = context.is_found_binding(&binding_locator)?;
 
-        context.vm.frame_mut().binding_stack.push(binding_locator);
+        context.vm.frame_mut().binding_stack.push(CapturedBinding {
+            locator: binding_locator,
+            initialized,
+        });
 
         Ok(())
     }
@@ -169,7 +176,13 @@ impl GetNameAndLocator {
             JsNativeError::reference().with_message(format!("{name} is not defined"))
         })?;
 
-        context.vm.frame_mut().binding_stack.push(binding_locator);
+        // The read above succeeded, so the binding exists; record that
+        // without another lookup (this path also feeds calls, where the
+        // `HasBinding` trap must run exactly once).
+        context.vm.frame_mut().binding_stack.push(CapturedBinding {
+            locator: binding_locator,
+            initialized: true,
+        });
         context.vm.set_register(value.into(), result);
         Ok(())
     }

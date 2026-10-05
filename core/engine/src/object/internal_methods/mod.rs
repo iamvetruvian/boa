@@ -12,7 +12,7 @@ use super::{
     shape::slot::{Slot, SlotAttributes},
 };
 use crate::{
-    Context, JsNativeError, JsResult,
+    Context, JsError, JsNativeError, JsResult,
     context::intrinsics::{StandardConstructor, StandardConstructors},
     object::JsObject,
     property::{DescriptorKind, PropertyDescriptor, PropertyKey},
@@ -666,6 +666,57 @@ pub(crate) fn ordinary_define_own_property(
     ))
 }
 
+/// Minimum remaining native stack (in bytes) to continue a recursive
+/// prototype-chain walk. The recursive walks (get/set/has) interleave this
+/// check per link, so the largest unchecked burst is one link — far below
+/// this reserve.
+pub(crate) const PROTO_WALK_RED_ZONE: usize = 256 * 1024;
+
+/// Maximum links traversed by an iterative prototype-chain walk. Iterative
+/// walks (`instanceof`, `isPrototypeOf`, legacy lookup) never consume native
+/// stack, so a stack check cannot trip inside them; the link budget bounds
+/// adversarial time instead (~0.5 s worst case). No legitimate chain comes
+/// close: V8's own stack-implied trip zone starts an order of magnitude
+/// lower, so this errs toward accepting deep-but-finite chains.
+pub(crate) const PROTO_WALK_ITERATION_LIMIT: u32 = 100_000;
+
+/// Fail with a catchable `RangeError` when the remaining native stack is
+/// inside the red zone (bug #13: a proxy-mediated prototype cycle used to
+/// abort the process with a stack overflow on property get/set/`in`).
+///
+/// Proxy targets are immutable, so proxy forwarding always terminates at a
+/// non-proxy object; only `__proto__`-mutable links can cycle, and every
+/// such recursive walk passes through one of the callers of this check. The
+/// error shape (`RangeError: Maximum call stack size exceeded`) and message
+/// match V8 exactly. Platforms that cannot report the remaining stack
+/// (`None`: wasm, Miri) keep the historical behavior.
+pub(crate) fn check_proto_walk_stack() -> JsResult<()> {
+    if stacker::remaining_stack().is_some_and(|left| left < PROTO_WALK_RED_ZONE) {
+        return Err(proto_walk_overflow());
+    }
+    Ok(())
+}
+
+/// Advance an iterative prototype-chain walk's link budget, failing with
+/// the same catchable `RangeError` past [`PROTO_WALK_ITERATION_LIMIT`]
+/// (bug #13: the iterative walks used to hang forever on a cycle — and on
+/// a hostile `getPrototypeOf` trap returning fresh objects, which no stack
+/// check can catch since the loop is stack-flat).
+pub(crate) fn check_proto_walk_budget(used: &mut u32) -> JsResult<()> {
+    *used += 1;
+    if *used > PROTO_WALK_ITERATION_LIMIT {
+        return Err(proto_walk_overflow());
+    }
+    Ok(())
+}
+
+/// The V8-identical overflow error shared by both walk guards.
+fn proto_walk_overflow() -> JsError {
+    JsNativeError::range()
+        .with_message("Maximum call stack size exceeded")
+        .into()
+}
+
 /// Abstract operation `OrdinaryHasProperty`.
 ///
 /// More information:
@@ -677,6 +728,7 @@ pub(crate) fn ordinary_has_property(
     key: &PropertyKey,
     context: &mut InternalMethodPropertyContext<'_>,
 ) -> JsResult<bool> {
+    check_proto_walk_stack()?;
     // 1. Assert: IsPropertyKey(P) is true.
     // 2. Let hasOwn be ? O.[[GetOwnProperty]](P).
     // 3. If hasOwn is not undefined, return true.
@@ -709,6 +761,7 @@ pub(crate) fn ordinary_get(
     receiver: JsValue,
     context: &mut InternalMethodPropertyContext<'_>,
 ) -> JsResult<JsValue> {
+    check_proto_walk_stack()?;
     // 1. Assert: IsPropertyKey(P) is true.
     // 2. Let desc be ? O.[[GetOwnProperty]](P).
     match obj.__get_own_property__(key, context)? {
@@ -812,6 +865,7 @@ pub(crate) fn ordinary_set(
     receiver: JsValue,
     context: &mut InternalMethodPropertyContext<'_>,
 ) -> JsResult<bool> {
+    check_proto_walk_stack()?;
     // 1. Assert: IsPropertyKey(P) is true.
     // 2. Let ownDesc be ? O.[[GetOwnProperty]](P).
     // 3. Return OrdinarySetWithOwnDescriptor(O, P, V, Receiver, ownDesc).

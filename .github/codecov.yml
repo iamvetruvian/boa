@@ -5,6 +5,18 @@ coverage:
   status:
     project:
       default:
-        threshold: 5% # allow 5% coverage variance
+        # P7.1a: tightened 5% -> 1%. The hard per-crate monotonic gate lives
+        # in the battery (tarpaulin XML deltas); this stays a coarse net.
+        threshold: 1%
 
-    patch: off
+    patch:
+      default: off
+      # P7.1a: patch coverage enforced on choke-point crates only.
+      choke:
+        paths:
+          - "core/engine"
+          - "core/gc"
+          - "core/string"
+          - "core/interner"
+        target: 80%
+        threshold: 5%

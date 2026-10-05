@@ -116,8 +116,10 @@ impl<D: InternalStringType> JsStringBuilder<D> {
         // 1. Caller should ensure that the inner is allocated.
         // 2. `unwrap_unchecked` is safe because this layout was successfully
         //    allocated previously with the same capacity, so it cannot overflow.
+        // 3. `Layout::new` (not `for_value` on the header) avoids forming a
+        //    reference to the still-uninitialized header of a fresh builder.
         unsafe {
-            Layout::for_value(self.inner.as_ref())
+            Layout::new::<SequenceString<D>>()
                 .extend(Layout::array::<D::Byte>(self.capacity()).unwrap_unchecked())
                 .unwrap_unchecked()
                 .0
@@ -196,6 +198,7 @@ impl<D: InternalStringType> JsStringBuilder<D> {
     /// # Safety
     ///
     /// Caller should ensure the capacity is large enough to hold elements.
+    /// The source slice `v` must not overlap the builder's spare capacity.
     #[inline]
     pub const unsafe fn extend_from_slice_unchecked(&mut self, v: &[D::Byte]) {
         // SAFETY:

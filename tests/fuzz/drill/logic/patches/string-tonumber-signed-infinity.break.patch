@@ -1,0 +1,189 @@
+commit a93e0b3ff8e917e4e7abb886242655929706ddda
+Author: Max Freedom Pollard <272618364+MaxFreedomPollard@users.noreply.github.com>
+Date:   Fri Sep 18 17:44:57 2026 +0000
+
+    fix(string): reject signed Infinity and non-decimal literals in StringToNumber (#5509)
+    
+    `Number("+inf")` returns `Infinity` and `Number("0x+1")` returns `1`.
+    Both must be `NaN`. The `StringNumericLiteral` grammar behind
+    [`StringToNumber`](https://tc39.es/ecma262/#sec-stringtonumber) spells
+    the infinite `StrUnsignedDecimalLiteral` as exactly `Infinity`, and
+    gives `NonDecimalIntegerLiteral` no sign of its own. I found these by
+    running `Number()` over a 1256 case corpus of signs, casings, prefixes
+    and surrounding whitespace and diffing against Node 22. There were 144
+    divergences and every one traced back to one of the two causes below.
+    
+    The infinity guard at `core/string/src/str.rs:335` matches on the first
+    byte of the string, so it only catches unsigned spellings. `Infinity`,
+    `+Infinity` and `-Infinity` have already returned by that point, so
+    anything reaching the guard that starts with `i` or `I` is invalid, but
+    when a sign is present the first byte is the sign and the guard does not
+    fire. Control then reaches `fast_float2::parse`, which accepts `inf` and
+    `infinity` case insensitively with an optional sign (`parse_inf_nan` in
+    `fast-float2-0.2.4/src/number.rs`). So `Number("+inf")`,
+    `Number("-Inf")`, `Number("+infinity")` and `Number("-INFINITY")` all
+    returned an infinity instead of `NaN`.
+    
+    The `0b`/`0o`/`0x` branch at `core/string/src/str.rs:342` strips the
+    prefix and passes the rest straight to `u32::from_str_radix` on line
+    349, and `from_str_radix` accepts a leading `+`. So `Number("0x+1")` and
+    `Number("0b+1")` returned `1`, and `Number("0x+0")` returned `0`. Only
+    the fast path is affected: `Number("0x+FFFFFFFFFF")` is too wide for
+    `u32` and falls through to the slow path, which already rejects the sign
+    because `+` is not a digit. A leading `-` was already rejected because
+    `from_str_radix` refuses one for an unsigned type.
+    
+    This reaches user code through every string to number coercion, so
+    `Number("+inf")`, `+"+inf"` and `"+inf" * 1` were all affected.
+    `parseFloat` and `parseInt` are separate code paths, already agree with
+    Node on the same inputs, and are untouched here.
+    
+    It changes the following:
+    
+    - The infinity guard also matches a sign followed by `i` or `I`, so
+    signed non-canonical spellings return `NaN` alongside the unsigned ones
+    it already caught.
+    - The non-decimal branch returns `NaN` when the text after the
+    `0b`/`0o`/`0x` prefix starts with `+` or `-`, before `from_str_radix`
+    sees it.
+    - Adds a `to_number` test to `core/string/src/tests.rs` covering both
+    families, the valid `Infinity` spellings, the valid prefixed literals,
+    the `u32` slow path via `0x1FFFFFFFF`, and surrounding `StrWhiteSpace`.
+    
+    Verification on aarch64-apple-darwin:
+    
+    - With only the test applied to unmodified `main`, `cargo test -p
+    boa_string` fails at `tests::to_number` with "`+inf` is not a
+    `StringNumericLiteral`". With the fix, `cargo test -p boa_string`
+    reports `25 passed; 0 failed` plus `2 passed` doctests.
+    - Rebuilding `boa_cli` and rerunning the 1256 case corpus against Node
+    22 gives zero divergences, down from 144.
+    - `cargo fmt --all --check` is clean, and `typos` v1.50.1, the version
+    pinned in `.github/workflows/rust.yml`, reports nothing on the changed
+    files or the whole repository.
+    - `cargo clippy -p boa_string --all-features --all-targets -- -D
+    warnings` and the same with `--no-default-features` are clean on rustc
+    1.98.0.
+    - `cargo check -p boa_string --all-features --all-targets` exits 0 on
+    the 1.91.0 MSRV, and `cargo doc -p boa_string --document-private-items
+    --all-features` exits 0 with `RUSTDOCFLAGS=-D warnings`.
+    
+    ---------
+    
+    Co-authored-by: Max Pollard <c60limited@gmail.com>
+
+diff --git b/core/string/src/str.rs a/core/string/src/str.rs
+index 3ec6957e..59e98d9d 100644
+--- b/core/string/src/str.rs
++++ a/core/string/src/str.rs
+@@ -331,15 +331,17 @@ impl<'a> JsStr<'a> {
+             (Some(b'0'), Some(b'b' | b'B')) => Some(2),
+             (Some(b'0'), Some(b'o' | b'O')) => Some(8),
+             (Some(b'0'), Some(b'x' | b'X')) => Some(16),
++            // Make sure that no further variants of "infinity" are parsed.
++            (Some(b'i' | b'I'), _) => {
++                return f64::NAN;
++            }
+             _ => None,
+         };
+ 
+         // Parse numbers that begin with `0b`, `0o` and `0x`.
+         if let Some(base) = base {
+             let string = &string[2..];
+-
+-            // Rejects things like `0x+1` or `0o-1`
+-            if string.is_empty() || string.starts_with(['+', '-']) {
++            if string.is_empty() {
+                 return f64::NAN;
+             }
+ 
+@@ -360,14 +362,7 @@ impl<'a> JsStr<'a> {
+             return value;
+         }
+ 
+-        match fast_float2::parse::<f64, &str>(string) {
+-            // `Infinity`, `+Infinity` and `-Infinity` already returned above, so any other
+-            // spelling `fast_float2` reads as infinite (`inf`, `+infinity`, ...) is not a
+-            // `StringNumericLiteral`. A decimal literal that overflows does have digits, and
+-            // its `StringNumericValue` is infinite, so it must be kept.
+-            Ok(f) if f.is_finite() || string.bytes().any(|b| b.is_ascii_digit()) => f,
+-            Ok(_) | Err(_) => f64::NAN,
+-        }
++        fast_float2::parse(string).unwrap_or(f64::NAN)
+     }
+ 
+     /// Gets an iterator of all the Unicode codepoints of a [`JsStr`].
+diff --git b/core/string/src/tests.rs a/core/string/src/tests.rs
+index c412b20d..0a4f80a6 100644
+--- b/core/string/src/tests.rs
++++ a/core/string/src/tests.rs
+@@ -565,69 +565,3 @@ fn starts_with_and_ends_with_basic() {
+     assert!(!basic.starts_with(end_needle));
+     assert!(basic.ends_with(end_needle));
+ }
+-
+-#[test]
+-#[allow(clippy::float_cmp)]
+-fn to_number() {
+-    // `Infinity`, `+Infinity` and `-Infinity` are the only spellings of the infinite
+-    // `StrUnsignedDecimalLiteral`. Every other casing, abbreviation or sign combination is not a
+-    // `StringNumericLiteral` and must be `NaN`.
+-    assert_eq!(JsString::from("Infinity").to_number(), f64::INFINITY);
+-    assert_eq!(JsString::from("+Infinity").to_number(), f64::INFINITY);
+-    assert_eq!(JsString::from("-Infinity").to_number(), f64::NEG_INFINITY);
+-    for invalid in [
+-        "inf",
+-        "INF",
+-        "Inf",
+-        "infinity",
+-        "+inf",
+-        "-inf",
+-        "+Inf",
+-        "-Inf",
+-        "+INF",
+-        "-INF",
+-        "+infinity",
+-        "-infinity",
+-        "+INFINITY",
+-        "-INFINITY",
+-        "+iNfInItY",
+-    ] {
+-        assert!(
+-            JsString::from(invalid).to_number().is_nan(),
+-            "`{invalid}` is not a `StringNumericLiteral`"
+-        );
+-    }
+-
+-    // A `NonDecimalIntegerLiteral` is a bare sequence of digits, so a sign after the prefix is
+-    // invalid.
+-    assert_eq!(JsString::from("0x10").to_number(), 16.0);
+-    assert_eq!(JsString::from("0X10").to_number(), 16.0);
+-    assert_eq!(JsString::from("0b101").to_number(), 5.0);
+-    assert_eq!(JsString::from("0o17").to_number(), 15.0);
+-    // Wider than `u32`, so this takes the slow path.
+-    assert_eq!(JsString::from("0x1FFFFFFFF").to_number(), 8_589_934_591.0);
+-    for invalid in [
+-        "0x", "0b", "0o", "0x+1", "0x-1", "0x+0", "0b+1", "0b-1", "0o+7", "0o-7",
+-    ] {
+-        assert!(
+-            JsString::from(invalid).to_number().is_nan(),
+-            "`{invalid}` is not a `StringNumericLiteral`"
+-        );
+-    }
+-
+-    // `StrWhiteSpace` around the literal is stripped before it is parsed.
+-    assert_eq!(JsString::from("").to_number(), 0.0);
+-    assert_eq!(JsString::from(" \t\n").to_number(), 0.0);
+-    assert_eq!(
+-        JsString::from(" \t-Infinity\n ").to_number(),
+-        f64::NEG_INFINITY
+-    );
+-    assert!(JsString::from(" -inf ").to_number().is_nan());
+-    assert!(JsString::from(" 0x+1 ").to_number().is_nan());
+-
+-    // A decimal literal too large for `f64` is still a `StringNumericLiteral`; its
+-    // `StringNumericValue` rounds to an infinity and must not be rejected.
+-    assert_eq!(JsString::from("1e400").to_number(), f64::INFINITY);
+-    assert_eq!(JsString::from("-1e400").to_number(), f64::NEG_INFINITY);
+-    assert_eq!(JsString::from("1e999").to_number(), f64::INFINITY);
+-}

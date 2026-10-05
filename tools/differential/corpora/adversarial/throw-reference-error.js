@@ -1,0 +1,2 @@
+// Native ReferenceError escapes.
+undeclaredVariableNameForDiff;

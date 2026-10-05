@@ -213,6 +213,17 @@ impl CodeBlock {
         self.source_info.function_name()
     }
 
+    /// Structurally validates this block against the bytecode validity model
+    /// (`docs/bytecode-validity.md`).
+    ///
+    /// Total: returns a precise [`VerifyError`](super::verify::VerifyError) on
+    /// any violation, never panics. Every block produced by
+    /// `ByteCompiler::finish` must verify; fuzzers call this on every
+    /// successful compile.
+    pub fn verify(&self) -> Result<(), super::verify::VerifyError> {
+        super::verify::verify(self)
+    }
+
     /// Retrieves the path of this code block.
     #[must_use]
     pub fn path(&self) -> &SourcePath {

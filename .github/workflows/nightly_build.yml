@@ -35,9 +35,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
           targets: ${{ matrix.target }}
 
       - name: Cache Cargo
@@ -55,3 +55,285 @@ jobs:
           tag: refs/tags/nightly
           overwrite: true
           prerelease: true
+
+  # P6.2: Miri checks one execution per run, so the expanded unsafe-core
+  # set re-runs on a schedule with several seeds. Same command/excludes as
+  # the `Miri` job in `rust.yml`; the seed extends (not replaces) the
+  # `-Zmiri-tree-borrows` discipline from `.cargo/config.toml`.
+  miri_seeds:
+    name: Miri multi-seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [1, 2, 3]
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+      MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-seed=${{ matrix.seed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with miri
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: miri
+
+      - name: Setup miri
+        run: cargo miri setup
+
+      - name: Check miri filter gate
+        run: bash scripts/check-miri-filter.sh
+
+      - name: Run miri tests (seed ${{ matrix.seed }})
+        # NOTE: `--test-threads=1` mitigates Miri RSS OOM (see rust.yml).
+        run: cargo miri test --workspace --exclude boa_cli --exclude boa_examples --exclude boa_fuzz --exclude boa_fuzzilli miri -- --test-threads=1
+
+  # P6.3: unsafe-core suites under AddressSanitizer (+ nightly UB checks)
+  # on the nightly schedule. The flag recipe lives in
+  # `scripts/run-sanitizer.sh` (host/target split: proc-macros must not
+  # see sanitizer flags). UBSan (`-Zsanitizer=undefined`) does not exist
+  # on the pinned nightly; Miri 6.2 + `-Zub-checks` backfill that column.
+  sanitizer:
+    name: Sanitizer (ASan unsafe-core)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with llvm-tools
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: llvm-tools
+
+      - name: Put llvm-symbolizer on PATH
+        run: echo "$HOME/.rustup/toolchains/nightly-2026-10-01-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin" >> "$GITHUB_PATH"
+
+      - name: Run sanitizer suites
+        run: bash scripts/run-sanitizer.sh -p boa_gc -p boa_string -p boa_engine --lib
+
+  # P6.4: Kani proof harnesses (`#[cfg(kani)]`) on the nightly schedule.
+  # Kani manages its own toolchain; the pinned stable only installs the
+  # verifier. Proof set (7): codec x4, GC headers x2, verify header-rules.
+  kani:
+    name: Kani proofs
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Install Kani verifier
+        run: cargo install kani-verifier --version 0.68.0 --locked
+
+      - name: Setup Kani
+        run: cargo kani setup
+
+      - name: Run Kani proofs
+        run: cargo kani -p boa_engine -p boa_gc
+
+  # P7.2: mutation — small choke crates, both stages, every night. Stage 1
+  # (package suites) is minutes; stage 2 retests survivors against the engine
+  # suite (~1.6 min/mutant measured 2026-10-04). The string/gc jobs are split
+  # for the 360-minute cap; CI runners are slower than the 16-core reference
+  # box, so margins are thin — shard stage-2 if flaky. Verdicts merge
+  # (stage-2 supersedes) and gate at >=95% with zero unaccounted survivors.
+  mutation_string:
+    name: Mutation (boa_string)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+
+      - name: Mutate boa_string, both stages
+        run: |
+          bash scripts/run-mutation.sh --no-gate \
+            -p boa_string --test-package boa_string \
+            -o target/mutants-string-s1
+          MISSED=target/mutants-string-s1/mutants.out/missed.txt
+          if [ -s "$MISSED" ]; then
+            bash scripts/run-mutation.sh --no-gate \
+              -p boa_string --test-package boa_string --test-package boa_engine \
+              --stage2-from "$MISSED" -o target/mutants-string-s2
+            bash scripts/run-mutation.sh --merge target/mutants-string-verdict.json \
+              target/mutants-string-s1 target/mutants-string-s2
+          else
+            bash scripts/run-mutation.sh --merge target/mutants-string-verdict.json \
+              target/mutants-string-s1
+          fi
+
+  mutation_gc:
+    name: Mutation (boa_gc)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+
+      - name: Mutate boa_gc, both stages
+        run: |
+          bash scripts/run-mutation.sh --no-gate \
+            -p boa_gc --test-package boa_gc \
+            -o target/mutants-gc-s1
+          MISSED=target/mutants-gc-s1/mutants.out/missed.txt
+          if [ -s "$MISSED" ]; then
+            bash scripts/run-mutation.sh --no-gate \
+              -p boa_gc --test-package boa_gc --test-package boa_engine \
+              --stage2-from "$MISSED" -o target/mutants-gc-s2
+            bash scripts/run-mutation.sh --merge target/mutants-gc-verdict.json \
+              target/mutants-gc-s1 target/mutants-gc-s2
+          else
+            bash scripts/run-mutation.sh --merge target/mutants-gc-verdict.json \
+              target/mutants-gc-s1
+          fi
+
+  # P7.2: interner (98 mutants, trivial) plus the boa_parser rotation shard.
+  # Parser counts 1992 mutants at ~40s each; shard 1/12 (~3.5h) rotates on
+  # day-of-year, so a full parser pass completes every 12 nights. Each shard
+  # is self-contained (stage-1 + stage-2 on its survivors) and gated.
+  mutation_parser:
+    name: Mutation (interner + parser shard)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+
+      - name: Mutate boa_interner, both stages
+        run: |
+          bash scripts/run-mutation.sh --no-gate \
+            -p boa_interner --test-package boa_interner \
+            -o target/mutants-interner-s1
+          MISSED=target/mutants-interner-s1/mutants.out/missed.txt
+          if [ -s "$MISSED" ]; then
+            bash scripts/run-mutation.sh --no-gate \
+              -p boa_interner --test-package boa_interner --test-package boa_engine \
+              --stage2-from "$MISSED" -o target/mutants-interner-s2
+            bash scripts/run-mutation.sh --merge target/mutants-interner-verdict.json \
+              target/mutants-interner-s1 target/mutants-interner-s2
+          else
+            bash scripts/run-mutation.sh --merge target/mutants-interner-verdict.json \
+              target/mutants-interner-s1
+          fi
+
+      - name: Mutate boa_parser rotation shard, both stages
+        run: |
+          SHARD=$(( $(date +%j) % 12 + 1 ))
+          export MUTANTS_EXTRA_ARGS="--shard $SHARD/12"
+          bash scripts/run-mutation.sh --no-gate \
+            -p boa_parser --test-package boa_parser \
+            -o target/mutants-parser-s1
+          MISSED=target/mutants-parser-s1/mutants.out/missed.txt
+          if [ -s "$MISSED" ]; then
+            # Stage 2 retests ALL shard survivors: the rotation shard must not
+            # narrow the exact filter (--shard composes with -F by slicing it).
+            unset MUTANTS_EXTRA_ARGS
+            bash scripts/run-mutation.sh --no-gate \
+              -p boa_parser --test-package boa_parser --test-package boa_engine \
+              --stage2-from "$MISSED" -o target/mutants-parser-s2
+            bash scripts/run-mutation.sh --merge target/mutants-parser-verdict.json \
+              target/mutants-parser-s1 target/mutants-parser-s2
+          else
+            bash scripts/run-mutation.sh --merge target/mutants-parser-verdict.json \
+              target/mutants-parser-s1
+          fi
+
+  # P7.2: boa_engine rotation shard + the Boa-specific set. The engine counts
+  # 16,579 mutants at ~3.5 min each (measured): a full pass needs ~120 nights
+  # at -j2, so each night tests a deterministic 1/120 day-of-year shard,
+  # single-stage (the engine suite IS the widest native suite). Every shard
+  # gates at >=95% + zero unaccounted; new/changed code is covered same-day
+  # by the per-PR in-diff job. Scale-out path: coarser shards on bigger iron.
+  mutation_engine:
+    name: Mutation (engine shard + Boa set)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+
+      - name: Install Kani verifier (BM-NAN-1 killer)
+        run: cargo install kani-verifier --version 0.68.0 --locked
+
+      - name: Setup Kani
+        run: cargo kani setup
+
+      - name: Mutate boa_engine rotation shard
+        run: |
+          SHARD=$(( $(date +%j) % 120 + 1 ))
+          MUTANTS_EXTRA_ARGS="--shard $SHARD/120" bash scripts/run-mutation.sh \
+            -p boa_engine --test-package boa_engine \
+            -o target/mutants-engine-shard
+
+      - name: Run Boa-specific mutant set
+        run: bash scripts/run-boa-mutants.sh

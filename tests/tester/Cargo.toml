@@ -13,6 +13,7 @@ rust-version.workspace = true
 
 [dependencies]
 boa_engine = { workspace = true, features = ["float16"] }
+boa_outcomes = { path = "../outcomes" }
 boa_runtime = { workspace = true, features = ["test262"] }
 clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
@@ -28,10 +29,12 @@ phf = { workspace = true, features = ["macros"] }
 comfy-table.workspace = true
 serde_repr.workspace = true
 cow-utils.workspace = true
+time.workspace = true
 
 [features]
 annex-b = ["boa_engine/annex-b", "boa_runtime/annex-b"]
 default = ["boa_engine/intl_bundled", "boa_engine/experimental", "annex-b"]
+coverage = ["boa_engine/vm-coverage"]
 
 [lints]
 workspace = true

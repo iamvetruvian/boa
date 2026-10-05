@@ -80,6 +80,11 @@ impl InlineCache {
             // Polymorphic cache is full, transition to megamorphic.
             self.megamorphic.set(true);
             entries.clear();
+            #[cfg(feature = "vm-coverage")]
+            crate::vm::coverage::coverage_ic_transition(0, true);
+        } else {
+            #[cfg(feature = "vm-coverage")]
+            crate::vm::coverage::coverage_ic_transition(entries.len(), false);
         }
     }
 

@@ -1,0 +1,148 @@
+name: differential
+
+on:
+  # Fast CI corpus on PRs (agreement ratchet); full green-slice corpus on a
+  # schedule and on release-candidate tags. Both gate on zero untriaged.
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  differential-ci:
+    name: Differential CI corpus (gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: boa
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Install mold linker
+        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Cache oracle binary
+        uses: actions/cache@9255dc2d030a5baf3d63b345a4ffbef6b8a67427f # v10.0.0
+        with:
+          path: boa/target/oracle
+          key: oracle-${{ hashFiles('boa/scripts/fetch-oracle.sh') }}
+
+      - name: Fetch pinned oracle
+        run: |
+          cd boa
+          bash scripts/fetch-oracle.sh
+
+      - name: Verify baseline pins (incl. oracle)
+        run: |
+          cd boa
+          bash scripts/verify-baseline.sh
+
+      - name: Test differential crate (incl. e2e)
+        run: |
+          cd boa
+          export BOA_DIFF_ORACLE="$PWD/target/oracle/js"
+          cargo test --release -p boa_differential
+
+      - name: Run CI corpus on both sides
+        run: |
+          cd boa
+          mkdir -p ../results/differential-ci
+          ./target/release/boa_differential run \
+            --corpus tools/differential/corpora/ci.toml \
+            --oracle ./target/oracle/js \
+            --expected-version JavaScript-C128.14.0 \
+            --verdicts tools/differential/corpora/verdicts.toml \
+            --output ../results/differential-ci
+
+      - name: Gate on zero untriaged
+        run: |
+          cd boa
+          ./target/release/boa_differential triage \
+            --queue ../results/differential-ci/triage-queue.json --check
+
+      - name: Upload differential results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: differential-ci-results
+          path: results/differential-ci
+
+  differential-full:
+    name: Differential full corpus (gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: boa
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Install mold linker
+        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Cache oracle binary
+        uses: actions/cache@9255dc2d030a5baf3d63b345a4ffbef6b8a67427f # v10.0.0
+        with:
+          path: boa/target/oracle
+          key: oracle-${{ hashFiles('boa/scripts/fetch-oracle.sh') }}
+
+      - name: Fetch pinned oracle
+        run: |
+          cd boa
+          bash scripts/fetch-oracle.sh
+
+      - name: Verify baseline pins (incl. oracle)
+        run: |
+          cd boa
+          bash scripts/verify-baseline.sh
+
+      - name: Run full corpus on both sides
+        run: |
+          cd boa
+          cargo build --release -p boa_differential
+          mkdir -p ../results/differential-full
+          ./target/release/boa_differential run \
+            --corpus tools/differential/corpora/full.toml \
+            --oracle ./target/oracle/js \
+            --expected-version JavaScript-C128.14.0 \
+            --verdicts tools/differential/corpora/verdicts.toml \
+            --output ../results/differential-full
+
+      - name: Gate on zero untriaged
+        run: |
+          cd boa
+          ./target/release/boa_differential triage \
+            --queue ../results/differential-full/triage-queue.json --check
+
+      - name: Upload differential results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: differential-full-results
+          path: results/differential-full

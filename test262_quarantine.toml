@@ -1,0 +1,12 @@
+# P1.6 flakiness quarantine.
+#
+# Tests listed here still RUN; `compare --fail-on` merely exempts their stable
+# test ids from breaching, and prints the exemption count so it can never be
+# silent. Entries use the same audited schema as `test262_config.toml`, except
+# quarantine expiries must be concrete dates (known-flaky tests are
+# time-boxed, never open-ended).
+#
+# An empty list means no known-flaky tests. To quarantine a test the same day
+# it flakes: add an entry with owner + short expiry, then fix or formally own
+# it before the expiry — `check-config` fails on expired entries.
+quarantine = []

@@ -100,14 +100,14 @@ impl ThisForObjectEnvironmentName {
         // to derive the `this` value (`WithBaseObject`) instead of scanning the
         // environment chain again, so `HasBinding` (and the binding object's
         // `[[HasProperty]]` trap) runs exactly once, as required by the specification.
-        let binding_locator = context
+        let captured = context
             .vm
             .frame_mut()
             .binding_stack
             .pop()
             .js_expect("locator should have been pushed by GetNameAndLocator")?;
         let this = context
-            .this_from_resolved_object_environment_binding(&binding_locator)
+            .this_from_resolved_object_environment_binding(&captured.locator)
             .map_or(JsValue::undefined(), Into::into);
         context.vm.set_register(dst.into(), this);
         Ok(())

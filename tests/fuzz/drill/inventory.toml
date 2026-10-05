@@ -1,0 +1,34 @@
+# Seeded-crash drill inventory (P4 validation gate).
+#
+# Each entry is a KNOWN crasher the fleet must rediscover. Target: five
+# entries with distinct signatures (P4 gate). Count grows as the fleet
+# (and the P4.3 byte-level targets) finds new crash-class bugs; fixed bugs
+# graduate to the regression DB and leave this file.
+#
+# Fields:
+#   id              stable slug (matches regression-DB id when filed)
+#   harness         "boa-eval" (direct CLI eval) or "fuzz-target"
+#                   (byte-level target; runs the tmin leg too)
+#   target          fuzz target name (fuzz-target harness only)
+#   input           repo-relative crash input path
+#   timeout         seconds before the run counts as a hang-crash
+#   signature_match stderr substring identifying the crash (dedupe key seed)
+#
+# Graduated (fixed; live in the regression DB, kept here as comment so the
+# gate's "five historical crash bugs" can reintroduce them via revert):
+#   cyclic-proto-walk-stack-overflow (SIGSEGV→catchable RangeError; guard in
+#     object/internal_methods + operations + builtins/object)
+#   parser-deep-nesting-stack-overflow (SIGABRT→catchable SyntaxError; guard
+#     in parser cursor + 8 choke points) — never inventoried live; found and
+#     fixed inside P4.3.
+
+[[entry]]
+id = "huge-sparse-join-abort"
+harness = "fuzz-target"
+target = "cli-exec"
+input = "tests/fuzz/drill/inputs/huge-sparse-join-full.js"
+timeout = 180
+signature_match = "memory allocation"
+# NOTE: debug builds spin (timeout) where release builds abort with an
+# allocation failure; both are crash-class. The runner accepts any nonzero
+# exit; the signature match is attempted but a timeout also passes.

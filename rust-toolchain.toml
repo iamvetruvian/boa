@@ -1,0 +1,7 @@
+[toolchain]
+# Pinned stable toolchain for all builds, tests, and gates unless a job
+# explicitly needs nightly (Miri, fuzz runs, sanitizers) or MSRV. See
+# `docs/baseline.md` for the full pin manifest and re-pin procedure.
+channel = "1.94.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

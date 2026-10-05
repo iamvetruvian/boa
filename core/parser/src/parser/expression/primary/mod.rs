@@ -34,6 +34,7 @@ use crate::{
     },
     parser::{
         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{
             BindingIdentifier, Expression, FormalParameterListOrExpression,
             identifiers::IdentifierReference, primary::template::TemplateLiteral,
@@ -98,6 +99,7 @@ where
         // isn't passed and consumed by parsers according to spec (EX: GeneratorExpression)
         let tok = cursor.peek(0, interner).or_abrupt()?;
         let tok_position = tok.span().start();
+        check_stack(tok_position)?;
 
         match tok.kind() {
             TokenKind::Keyword((Keyword::This, true))

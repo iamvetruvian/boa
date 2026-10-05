@@ -11,6 +11,7 @@ use crate::{
     lexer::TokenKind,
     parser::{
         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{
             FormalParameterListOrExpression, unary::UnaryExpression, update::UpdateExpression,
         },
@@ -18,7 +19,7 @@ use crate::{
     source::ReadChar,
 };
 use boa_ast::{
-    Keyword, Punctuator,
+    Keyword, Punctuator, Spanned,
     expression::operator::{Binary, binary::ArithmeticOp},
 };
 use boa_interner::Interner;
@@ -59,6 +60,7 @@ where
 
     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
         let next = cursor.peek(0, interner).or_abrupt()?;
+        check_stack(next.span().start())?;
         match next.kind() {
             TokenKind::Keyword((Keyword::Delete | Keyword::Void | Keyword::TypeOf, _))
             | TokenKind::Punctuator(

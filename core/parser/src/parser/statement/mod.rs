@@ -43,6 +43,7 @@ use crate::{
     lexer::{Error as LexError, InputElement, Token, TokenKind, token::EscapeSequence},
     parser::{
         AllowAwait, AllowReturn, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{BindingIdentifier, Initializer, PropertyName},
     },
     source::ReadChar,
@@ -118,6 +119,7 @@ where
     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
         // TODO: add BreakableStatement and divide Whiles, fors and so on to another place.
         let tok = cursor.peek(0, interner).or_abrupt()?;
+        check_stack(tok.span().start())?;
 
         match tok.kind() {
             TokenKind::Keyword((Keyword::With, _)) => {
@@ -522,6 +524,7 @@ where
             )?
             .span()
             .start();
+        check_stack(start)?;
 
         let mut patterns = Vec::new();
 
@@ -770,6 +773,7 @@ where
             )?
             .span()
             .start();
+        check_stack(start)?;
 
         let mut patterns = Vec::new();
         let mut last_elision_or_first = true;

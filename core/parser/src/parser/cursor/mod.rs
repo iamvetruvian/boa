@@ -7,7 +7,7 @@ use crate::{
     parser::{OrAbrupt, ParseResult},
     source::ReadChar,
 };
-use boa_ast::{LinearPosition, PositionGroup, Punctuator, Spanned};
+use boa_ast::{LinearPosition, Position, PositionGroup, Punctuator, Spanned};
 use boa_interner::Interner;
 use buffered_lexer::BufferedLexer;
 
@@ -312,4 +312,39 @@ where
     pub(super) fn take_source(&mut self) -> boa_ast::SourceText {
         self.buffered_lexer.take_source()
     }
+}
+
+/// Minimum remaining native stack (in bytes) required to continue parsing.
+///
+/// One expression-cascade level costs ~150 `KiB` of stack in unoptimized
+/// builds; checks interleave the descent (primary, assignment,
+/// exponentiation, unary, member, …) so the largest unchecked burst is a
+/// few cascade frames, and this reserve covers it several times over.
+pub(super) const STACK_RED_ZONE: usize = 256 * 1024;
+
+/// Fail with a catchable parse error when the remaining native stack is
+/// inside the red zone (bug #22: deep syntactic nesting used to abort
+/// the process with a stack overflow).
+///
+/// A free function (rather than a `Cursor` method) so call sites can invoke
+/// it while a peeked token still borrows the cursor.
+///
+/// Every unbounded recursion cycle of the grammar (expression cascade,
+/// statements, binding patterns, and the directly self-recursive unary /
+/// assignment / exponentiation / member parsers) passes through one of the
+/// callers of this check, so tripping it bounds the accepted nesting
+/// depth — and therefore the depth of every downstream recursive walk
+/// (scope analysis, compilation, printing), which all run on smaller
+/// frames than the parse itself.
+///
+/// The effective depth adapts to the stack and profile (like
+/// SpiderMonkey/V8, which throw a catchable error instead of aborting),
+/// so only clearly-shallow inputs (must parse) and clearly-absurd ones
+/// (must error) are asserted anywhere. Platforms that cannot report the
+/// remaining stack (`None`: wasm, Miri) keep the historical behavior.
+pub(super) fn check_stack(position: Position) -> ParseResult<()> {
+    if stacker::remaining_stack().is_some_and(|left| left < STACK_RED_ZONE) {
+        return Err(Error::general("Maximum call stack size exceeded", position));
+    }
+    Ok(())
 }

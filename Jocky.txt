@@ -1,0 +1,207 @@
+1. WHAT JOCKY IS
+
+JOCKY is a new cross-platform programming language and forensic framework built from scratch to solve a problem that no existing tool addresses: how do you perform deep digital forensic analysis of a computer or network when the very act of analysis is detected, blocked, or altered by antivirus solutions and EDR platforms running on the target host?
+
+Every commercially available forensic tool (EnCase, FTK, Velociraptor, KAPE) installs a visible agent, creates recognizable files, generates known API call sequences, and produces identifiable network traffic. When deployed on a host that is already compromised by a sophisticated adversary, these tools announce to the attacker that an investigation has begun. The attacker destroys evidence, rotates C2 channels, or goes dormant. The investigation is compromised before it starts.
+
+JOCKY eliminates this problem at the most fundamental level possible: the compiler. Rather than writing forensic scripts and then layering evasion on top (the approach every existing tool takes, and the reason they all eventually get detected), JOCKY makes evasion a structural property of compilation itself. The script author writes what data to collect. The compiler guarantees that the resulting binary cannot be detected by any static or behavioral mechanism the language owns. This guarantee is not a claim. It is a set of ten testable invariants that can be demonstrated to evaluators against live security products.
+
+The framework ships with 15 forensic scripts covering host triage, disk forensics (MFT, USN journal, prefetch, shimcache, amcache, SRUM, event logs, registry hives), memory analysis, network capture and protocol analysis, persistence auditing, lateral movement detection, IOC sweeping, rootkit detection, and super-timeline construction. Every artifact is output as hash-chained, Ed25519-signed JSON compliant with Bharatiya Sakshya Adhiniyam 2023 Section 63, making JOCKY the only tool in existence that combines APT-grade stealth with court-admissible forensic evidence.
+
+The framework handles multiple simultaneous system analyses through a web-based central management console with role-based access control, and all traffic between the console and deployed agents is routed through legitimate cloud storage APIs (Google Drive, Azure Blob, AWS S3, Google Cloud Storage), making command-and-control traffic indistinguishable from the millions of ordinary cloud operations that occur every second on the internet.
+
+2. THE LANGUAGE
+
+The problem statement calls for an "independent programming language" whose "LLVM frontend alters basic control-flow graphs, token generation, and binary structures, rendering signature-based detection ineffective." JOCKY delivers this, and the design goes further than what the statement envisions.
+
+JOCKY is a domain-specific language designed exclusively for forensic analysis and post-exploitation operations. It is deliberately narrow, not general-purpose, because every construct must lower to an auditable intermediate representation opcode. There is no FFI, no inline assembly, no raw syscall verb, no arbitrary library loading. This constraint is the key insight: if the script author cannot express anything outside the language's semantic boundary, then the compiler can guarantee the evasion properties of every possible program. Evasion cleverness is not script-authorable. The compiler owns it completely.
+
+The programmer works with high-level forensic concepts. Artifacts are the unit of tasking, where each declares what privilege level it needs and what data it produces. Verbs like collect, inject, blind, persist, and beacon are the standard library primitives, each carrying an effect type annotation that the compiler enforces. A pipeline syntax allows composing operations naturally: "collect proc_meta | filter(parent == 'cmd.exe') | timeline | upload". The effect system is the compiler-level guarantee: the typechecker rejects any program that attempts to exceed its declared privilege envelope before a single byte of machine code is emitted.
+
+What makes this design work is the separation of concerns: the script says what to do (collect the MFT, parse event logs, build a timeline), and the compiler decides how to do it (which syscalls, which memory allocation strategy, which execution vector, which call-stack shape). The operator never needs to understand indirect syscalls or process ghosting. They write forensic logic in a clean, readable DSL. The binary that comes out is undetectable. Every time.
+
+3. THE TWO-TIER COMPILER
+
+The JOCKY compiler uses a two-tier intermediate representation built on top of LLVM, and the reason for this design is worth understanding because it is what enables both the type-safety guarantees and the industrial-grade code generation.
+
+The first tier is the JOCKY IR, a high-level, domain-specific representation with opcodes like IR_COLLECT, IR_INJECT, IR_BLIND, IR_PERSIST, and IR_BEACON. Each opcode carries an effect class, a minimum privilege level, and a platform target. The effect/privilege typechecker runs at this level. This is where the compiler understands forensic semantics: "this operation reads process memory and needs L1 privilege" or "this operation loads a vulnerable driver and needs L2." LLVM's IR cannot express any of this. It operates at the level of instructions, basic blocks, and functions, with no concept of forensic effects or privilege contracts.
+
+The second tier is standard LLVM IR. Each JOCKY IR opcode expands into LLVM IR function calls to the jrt-core runtime, with platform-specific lowering selecting Windows or Linux code paths. Once in LLVM IR, the code passes through OLLVM-style obfuscation passes (detailed in Section 4), then through LLVM's mature x86-64/AArch64 backend for code generation. We do not write our own machine code emitter. That would be months of error-prone work for no benefit when LLVM's backends are battle-tested across the entire industry.
+
+After LLVM code generation, a custom PE/ELF emitter replaces the default linker. This emitter forges plausible toolchain profiles (Rich headers, linker versions, section layouts, load-config structures, build IDs), all rotated per build to mimic different legitimate compilers. The import table is empty (all imports resolved at runtime). The string section contains only encrypted blobs. The result is a binary that looks, structurally, like it was compiled by a standard toolchain, but whose internal logic, layout, and metadata change on every single build.
+
+Cross-platform specialization is handled at the compiler level. Ubuntu and Windows have fundamentally different security architectures, telemetry mechanisms, and kernel APIs. A single forensic script must specialize for each OS to evade all platform-specific security solutions without leaving generic detection footprints. JOCKY addresses this by maintaining two specialized compiler backends, one for Windows and one for Linux. From a single .jky source file, the targeted backend automatically selects the relevant vulnerable drivers, escalation interfaces, OS-specific unhooking routines, and bare runtime libraries, packaging them into an OS-specific PE or ELF binary at compilation time. The investigator writes the script once; the compiler handles platform specialization.
+
+4. THE POLYMORPHIC ENGINE
+
+The problem statement identifies a paradigm shift: "when programmers adopt sophisticated software engineering practices, specifically continuous integration and continuous deployment (CI/CD)." It requires that "every iteration automatically passes through integrated obfuscators, variable-encryption routines, and polymorphic engines" so that "every deployment instance possesses unique hashes, modified entry points, and altered import tables, neutralizing traditional file-reputation databases."
+
+JOCKY operationalizes this insight by treating polymorphism as a build pipeline property, not a manual operator task. The CI/CD pipeline applies the following semantics-preserving transforms, all seeded with a per-build random value:
+
+•  Control flow graph flattening (structured control flow replaced with a randomized dispatcher loop)
+
+•  Mixed Boolean-Arithmetic transformations (arithmetic obfuscated with equivalent but unrecognizable expressions)
+
+•  Opaque predicates (always-true/always-false branches that static analysis cannot resolve)
+
+•  Instruction substitution (instructions replaced with equivalent but different sequences)
+
+•  Dead code insertion (semantically irrelevant but plausible code blocks)
+
+•  Block shuffling (basic block ordering randomized within functions)
+
+•  String encryption (per-build key, decrypt at point of use, zero from stack after)
+
+•  Dynamic import resolution (runtime PEB-walk hash lookup; no static import table)
+
+•  Toolchain profile forging (Rich header, linker version, section layout rotated per build)
+
+The result is that every build produces a binary with a different SHA256, different TLSH, different entry point, different control flow graph shape, different section layout, and different toolchain metadata. A YARA rule written against one build does not match the next. This creates an economic asymmetry: the cost to defeat a signature is one CI rebuild (approximately five minutes of compute), while the cost to write that signature is four to forty hours of reverse-engineering analyst time.
+
+5. THE RUNTIME ENVELOPE
+
+jrt-core is the runtime component that enforces the mechanical footprint envelope. Every compiled JOCKY script automatically inherits these properties without the script author writing a single line of evasion code. They are structural consequences of how the compiler emits code and how the runtime manages memory, syscalls, and execution.
+
+Every sensitive system call is made indirectly. The runtime resolves System Service Numbers at startup using Halo's Gate, Hell's Gate, or Tartarus Gate techniques, then routes each call through a clean syscall;ret instruction sequence inside ntdll.dll. This means that every user-mode API hook planted by security products (the primary mechanism EDRs use to monitor process behavior) is completely bypassed. The security product's hook never executes. On Linux, the runtime uses direct syscalls with stable numbers, bypassing libc entirely for sensitive operations.
+
+Memory discipline is equally strict. At no point during execution is any memory page simultaneously writable and executable. The classic RWX anomaly that security products flag as a hallmark of shellcode injection cannot occur. Pages are allocated as read-write, code is written into them, and then they are flipped to read-execute before any instruction is fetched. All executable memory is always file-backed, mapped from an actual file via module stomping, process ghosting, herpaderping, or doppelganging. This defeats the VAD walk analysis that EDRs use to find unbacked executable memory regions, because every executable region legitimately traces back to a file on disk.
+
+The binary contains no static import table. All API addresses are resolved at runtime through PEB walk with hash lookup, producing a degenerate imphash that matches nothing in any threat intelligence database. All string literals are encrypted with a per-build key, decrypted only at point of use, and zeroed from stack buffers immediately after. The compiler never spawns a process or thread on its own initiative. The zero-incidental-child invariant means that process-creation telemetry (Sysmon Event ID 1, for example) shows nothing attributable to the compiler's lowering decisions. Before every sensitive syscall, the compiler inserts synthetic stack frames from signed Microsoft modules, so that stack-walk validation (a detection technique used by CrowdStrike and similar products) sees a plausible call chain originating from trusted code.
+
+Because JOCKY compiles to native machine code and never hosts a script engine, AMSI (the Antimalware Scan Interface that intercepts .NET, PowerShell, VBScript, and JavaScript execution) is inapplicable by construction. There is no AmsiScanBuffer call to make, because there is no interpreted code to scan.
+
+The act of reading deep forensic data and constantly transporting it inherently generates detectable operating system events and network telemetry. JOCKY resolves this at the architectural level. All on-host reads, handle enumerations, and forensic queries execute exclusively via indirect system calls while hiding within the memory space of legitimate system processes, eliminating user-mode hook anomalies and generating zero process-creation telemetry. For data transport, a custom TLS stack formats all outbound communication as regular browser HTTPS requests to legitimate cloud APIs, defeating both endpoint behavioral sensors and network-level JA3/JA4 TLS fingerprinting.
+
+These are not optional features an operator enables. They are invariants guaranteed by the compiler for every compiled script, and each one is independently testable and demonstrable to evaluators.
+
+6. MULTI-VECTOR IN-MEMORY EXECUTION
+
+The problem statement requires "multiple distinct file-less techniques (e.g., process hollowing, reflective DLL injection, API unhooking, direct system calls, or thread execution hijacking) to run secondary script entirely within the memory space of trusted processes." JOCKY implements distinct execution vectors, all flowing through jrt-core's allocator where no page is ever W+X and executable memory is always file-backed:
+
+•  File-backed stomping: the default vector. Full-section replacement in a mapped signed module on Windows, memfd_create with fexecve on Linux
+
+•  Threadless start: APC injection on alertable threads or thread-context hijacking, avoiding new thread creation entirely and defeating thread start-address validation
+
+•  Sleep discipline (Ekko/FOLIAGE pattern): when the agent is idle between task cycles, all executable memory is encrypted and marked RW. Only when the agent wakes is memory decrypted and flipped to RX. Memory scanners scanning during sleep windows find only encrypted data in non-executable pages. The code does not exist in scannable form while the agent sleeps
+
+7. PRIVILEGE MODEL AND ESCALATION
+
+JOCKY uses a three-level privilege model that cleanly separates what the framework can do at each level, and can attempt automatic privilege escalation as required by the script.
+
+At L0 (unprivileged), the agent operates with the full runtime envelope and can collect process metadata via bulk queries, explore network connections, detect beaconing patterns, sweep against IOC lists, and build timelines. At L1 (admin/root), the agent unlocks raw disk access (MFT, USN journal, $LogFile), system event logs, registry hives, consented memory dumps, packet capture, lateral movement detection, and system-level persistence auditing. At L2 (kernel), the agent can invoke blind() to strip EDR sensor callbacks and disable monitoring.
+
+The path from L0 to L1 is handled by jrt-escalate, an operator-extensible escalation engine that ships zero exploits. The operator supplies C++ modules implementing a standardized three-phase interface: probe() performs a non-destructive check of whether the exploit is viable on the target host, escalate() executes the privilege escalation, and cleanup() removes artifacts the exploit created. These modules are compiled through the same LLVM pass pipeline as all other JOCKY code, receiving full obfuscation treatment automatically. The C2 server must approve every escalation before it runs. The agent never autonomously decides to escalate, ensuring human oversight at every privilege boundary.
+
+This design makes the framework future-proof. When new OS vulnerabilities are discovered, operators write a module implementing the standard interface, add it to the build, and the pipeline handles obfuscation, integration, and deployment. The framework is never tied to a specific vulnerability or OS version. If the operator provides no modules, jrt-escalate is simply inert, and L1 requires pre-installed admin access.
+
+8. KERNEL-LEVEL SENSOR BLINDING (BYOVD)
+
+The problem statement explicitly requires "detection of legitimate or vulnerable third-party drivers (BYOVD) to disable EDR callbacks or manipulate kernel structures directly, blinding security agents running in user or kernel space." This is implemented as the blind() verb, gated behind L2 privilege.
+
+On Windows, the sequence begins with pre-flight checks: the agent queries whether the Microsoft Vulnerable Driver Blocklist is enabled, inspects the active WDAC policy, cross-references the agent's driver set against blocked hashes and signer certificates, and reports the viability assessment to the C2 server. If a viable driver is found and the operator approves, the BYOVD loader executes: loading the driver, acquiring a kernel read/write primitive, zeroing PspCreateProcessNotifyRoutine and ObCallback entries (the kernel arrays that notify EDR products of process creation and object access), corrupting the EDR's WMI_LOGGER_CONTEXT and disabling ETW trace sessions, and unloading the EDR's minifilter. The driver set is updatable via the CI pipeline, with new additions automatically checked against the live blocklist.
+
+On Linux, sensor blinding adapts to the host's security posture: flushing audit rules (unless locked with -e 2), stopping auditd, detaching eBPF-based monitors (Falco, Tetragon, Tracee) via bpf(BPF_LINK_DETACH) or attaching higher-priority replacement programs, removing LKM-based monitoring modules, and setting SELinux to permissive or AppArmor to complain mode where root holds the necessary capability.
+
+On fully updated Windows 11 with HVCI and the blocklist enabled, kernel-level blinding is unavailable because the Microsoft Vulnerable Driver Blocklist blocks most known BYOVD drivers. In that case, blind() reports degraded mode, and the agent operates with the full Section 5 envelope guarantees but without kernel-level sensor blinding. Linux kernel lockdown mode and immutable audit rules are similarly hard limits.
+
+9. HOST RESILIENCE AND PERSISTENCE
+
+Extended investigations require forensic scripts to survive host reboots and operating system updates. Once deployed, the compiled JOCKY binary registers itself as a system service on Windows or a systemd unit on Linux, so the operating system itself autostarts it on reboot without any additional deployment step. Once privilege has been escalated, subsequent OS patches do not affect the established operational capability because the agent's execution path does not depend on patched userland APIs (all sensitive calls go through indirect syscalls to the kernel).
+
+For major OS updates that break underlying exploit primitives or vulnerable drivers, the framework allows operators to supply updated exploit modules and driver payloads at build-time targeting the new OS version. The forensic scripts themselves require no modification. The operator rebuilds with updated modules, and the polymorphic pipeline produces a fresh binary specialized for the new environment.
+
+10. FORENSIC ARTIFACT FRAMEWORK
+
+JOCKY ships with a comprehensive library of 15 forensic scripts, each a .jky file compiled through the full polymorphic pipeline. These scripts are composable via the pipeline syntax and cover the complete scope of digital forensic analysis:
+
+At L0 (no privilege required): host_triage.jky collects process trees with full command lines, parent-child relationships, loaded DLLs, open handles, and token privileges. service_enum.jky enumerates all installed services with binary paths, start types, and signing status. network_connections.jky maps all TCP/UDP sockets to their owning PIDs alongside DNS cache, ARP tables, and routing information. beacon_detect.jky analyzes outbound connections for periodic callback patterns and known C2 sleep behaviors. ioc_sweep.jky sweeps all collected artifacts against operator-supplied IOC lists (file hashes, IPs, domains, YARA rules). timeline_build.jky merges all artifact timestamps into a unified super-timeline with SHA-256 hashes per entry for chain-of-custody integrity.
+
+At L1 (admin/root): disk_forensics.jky parses the MFT, USN journal, $LogFile, prefetch files, shimcache, amcache, and SRUM database, i.e. the core Windows forensic artifacts that reveal historical file activity, program execution, and resource usage. evtlog_parse.jky extracts security events (logon 4624/4625, process creation 4688, service install 7045, scheduled tasks 4697/4698), Sysmon, PowerShell, and TaskScheduler logs. registry_forensics.jky performs offline hive parsing of SAM, SYSTEM, SOFTWARE, and NTUSER.DAT for accounts, network profiles, shellbags, and UserAssist data. memory_scan.jky performs consented memory dumps via a signed forensic driver and applies Volatility-style analysis: strings, handles, sockets, YARA sweeps, and injected thread detection. network_capture.jky captures packets on specified interfaces with protocol identification and DNS reconstruction. lateral_scan.jky detects lateral movement via remote SMB, RDP, WinRM, PsExec, DCOM, and SSH sessions cross-referenced against authentication logs. persistence_scan.jky and autoruns.jky comprehensively enumerate all autostart extensibility points.
+
+At L2 (kernel): rootkit_detect.jky performs differential detection, comparing process and driver lists obtained through standard APIs against raw kernel structure enumeration. Discrepancies between the two reveal hiding, indicating rootkit activity.
+
+Network forensics operates in three tiers: Tier 1 (L0) captures connection state via NtQuerySystemInformation or /proc/net. Tier 2 (L1) performs packet-level capture via raw sockets or ETW/eBPF. Tier 3 (L1) adds full packet reassembly, TLS certificate extraction, protocol analysis, beaconing detection, and exfiltration scoring.
+
+11. EVIDENCE INTEGRITY AND LEGAL ADMISSIBILITY
+
+Every artifact JOCKY collects automatically includes the fields required by Bharatiya Sakshya Adhiniyam 2023 Section 63 for electronic evidence to be legally admissible: a unique artifact_id (Record ID), a collection_timestamp (UTC, NTP-validated), a machine_fingerprint (Host Device ID), the agent_id and jocky_build_hash describing the method of production, a SHA-256 data_hash certifying faithful reproduction, an Ed25519 collector_signature for cryptographic non-repudiation, and a parent_hash linking each artifact to the previous one in the session chain for chain of custody.
+
+This parent_hash creates a Merkle-style hash chain: inserting, deleting, or modifying any artifact in the sequence breaks the chain, and the C2 server independently verifies the chain on receipt. A Section 63 compliance certificate is auto-generated per mission, co-signed by the operator (via the console) and countersigned by the agent's mission key.
+
+This makes JOCKY unique among both forensic and offensive tools. Forensic tools like EnCase produce admissible evidence but are visible. Offensive tools like Cobalt Strike are stealthy but produce nothing a court would accept. JOCKY is both: the same binary that evades every detection mechanism also produces court-admissible, hash-chained, cryptographically signed evidence. Export formats include JSON (SIEM ingestion), CSV/TSV, STIX 2.1 (threat intelligence sharing), and bodyfile format (Sleuth Kit mactime, plaso, log2timeline).
+
+12. DATA PRIVACY AND ANTI-WEAPONIZATION
+
+JOCKY collects and transports deep forensic intelligence without detection. If intercepted by third parties or if unauthorized actors gained access to the framework, this capability could be misused. The framework addresses this through structural safeguards.
+
+All data transport is end-to-end encrypted between the agent and the C2 server. The framework itself ships zero exploits and zero vulnerable drivers. A stolen copy of the toolchain cannot escalate privileges or communicate with any infrastructure without the operator's private cloud credentials, mission tokens, and signing keys. Every compilation generates a cryptographically signed build attestation containing the build hash, timestamp, and operator identity, so unauthorized builds can be immediately identified and repudiated. Per-mission storage accounts with auto-expiry tokens limit blast radius. Canary tasks and anomaly checks on returned results detect evidence-poisoning attempts.
+
+13. OPERATOR DASHBOARD AND TRANSPORT
+
+The problem statement requires the framework to "handle multiple system analysis simultaneously using central management interface" with traffic "routed through trusted cloud infrastructure or content delivery networks (CDNs) using domain fronting or legitimate cloud APIs."
+
+The management console is a web application providing a dashboard (agent map, status overview, alerts), a mission manager (mission creation, task queues, scheduling), and a forensic report viewer (unified timeline view, artifact browser, IOC search). The API server exposes REST and WebSocket endpoints with JWT authentication and role-based access control across three roles: Operator (full control), Analyst (read access with limited tasking), and Readonly (view only). Every login, task dispatch, and data access is recorded in an append-only, per-entry-signed audit log.
+
+For transport, JOCKY uses legitimate cloud storage APIs rather than domain fronting (which has been blocked by all major CDNs since 2018). Four profiles are available: Google Drive API, Azure Blob Storage, AWS S3, and Google Cloud Storage. Agents upload encrypted forensic results as storage blobs; tasking is delivered as encrypted blobs in the same account. This traffic is indistinguishable from legitimate cloud application usage. Per-mission storage accounts with auto-expiry tokens limit blast radius.
+
+The agent lifecycle follows a clean sequence: registration (machine fingerprint and capability report), tasking (beacon, receive task, execute), result collection (encrypted signed JSON verified by C2 against the hash chain), and decommission (cleanup task, memory wipe, final confirmation).
+
+14. TESTABLE INVARIANTS
+
+These are not claims. They are properties that can be independently verified by evaluators against live security products:
+
+1. The emitted binary contains no static import directory; imphash is degenerate.
+
+2. No plaintext literal exists in any section; per-section entropy falls within normal toolchain ranges (~6.0-6.5 for .text).
+
+3. SHA256, TLSH, entry point, and CFG shape all differ across N consecutive builds.
+
+4. At no point in execution is any page both writable and executable (dynamic test).
+
+5. Every executable region resolves to a file-backed mapping (dynamic test).
+
+6. Zero process/thread/image-load events are attributable to lowering (Sysmon/Falco dynamic test against maximal artifact workload).
+
+7. Every sensitive syscall carries a signed-module call stack (stack-walk test).
+
+8. No AMSI provider is ever instantiated in the process (provider-list test).
+
+9. The runtime has no user-mode hook dependency: hooks planted on all ntdll exports do not alter behavior (differential execution test).
+
+10. A primitive-footprint report per build enumerates all syscalls, events, and privileges, attached as build attestation.
+
+The verification plan demonstrates these against real security stacks: N-build VirusTotal sweep targeting 0 detections, Windows 11 with Defender and Sysmon targeting 0 lowering-attributable events, Ubuntu with Falco and auditd targeting 0 lowering events, and cross-platform compilation of the same .jky script producing identical JSON semantics on both OSes.
+
+15. WHAT MAKES JOCKY STAND OUT
+
+Compiler-guaranteed evasion. In every existing tool (Cobalt Strike, Sliver, Brute Ratel, Mythic), evasion is a layer applied after the code is written: packers, crypters, manual syscall stubs. One operator mistake and the binary is detectable. In JOCKY, evasion is a property of the compiler itself. It is architecturally impossible to compile a JOCKY script that violates the footprint envelope. The script author cannot make an evasion mistake because the script author never touches evasion.
+
+Automatic polymorphism with asymmetric economics. Every competing tool produces a binary that, once reverse-engineered and signatured, is permanently burned. Updating the evasion requires skilled manual rework. JOCKY's pipeline re-polymorphizes everything automatically on every build. The economics are asymmetric: rebuilding costs minutes of CI compute; writing the signature costs days of analyst time. Every signature written against a JOCKY binary expires the moment a new build runs.
+
+Dual-purpose: stealth plus legal evidence. No other tool combines both. Forensic tools are visible. Offensive tools produce inadmissible output. JOCKY is the same binary doing both: APT-grade stealth and BSA 2023 Section 63-compliant, hash-chained, cryptographically signed evidence.
+
+Modular and future-proof. The escalation interface accepts operator-supplied C++ exploit modules through a standard probe/escalate/cleanup contract. The BYOVD driver set is updatable through the CI pipeline with automated blocklist pre-flight verification. When new vulnerabilities or new vulnerable drivers emerge, they are integrated without modifying the framework core. The language itself is extensible via new stdlib primitives and artifact definitions.
+
+Extremely small binary footprint. JOCKY payload binaries are microscopic and can be deployed on any device running Ubuntu or Windows. All runtime libraries (jrt-core, jrt-escalate, jrt-blind) are written in bare C and Assembly with zero external dependencies to keep binary size as small as possible. The build pipeline optimally selects only those libraries, exploit modules, and vulnerable drivers which are relevant to the target host's OS and version, stripping everything else at link time.
+
+16. IMPACTS AND BENEFITS
+
+Indigenous Cyber Capability (Atmanirbhar Bharat). India currently depends on foreign tools like EnCase, FTK, CrowdStrike, and Brute Ratel for cyber operations. This dependence carries risks: foreign vendors have visibility into Indian deployments, licenses can be revoked under political pressure, detection updates can be pushed that specifically target Indian operational tools, and foreign governments can compel vendor cooperation through court orders. JOCKY is a completely sovereign framework for deep forensic analysis of devices. All technical dependencies used in the implementation are open-source with no foreign proprietary dependency.
+
+Hidden Investigation of APT Attacks. India faces state-affiliated cyber attacks from groups like Red Echo (China), Bitter (South Asia), and APT36 (Pakistan) that can remain undetected inside critical networks for months. When these intrusions are discovered, investigators need to study the attacker's tooling, lateral movement paths, persistence mechanisms, and data exfiltration channels before the attacker realizes they have been found. JOCKY enables this silent investigation of compromised infrastructure, collecting forensic data about the attacker's entire operational footprint while the attacker continues to operate unaware, preserving the option for coordinated takedown or counter-intelligence exploitation.
+
+Legally Admissible Evidence. Every piece of forensic data collected through the JOCKY framework automatically includes Record ID, Device ID (host machine fingerprint), method of production, and chain of custody metadata. Bharatiya Sakshya Adhiniyam 2023 (Section 63) requires these details for any electronic evidence to be admissible in Indian courts. JOCKY automates this compliance at scale across hundreds of hosts without requiring manual per-artifact certification.
+
+CII Cybersecurity Audits. The Government of India mandates periodic cybersecurity audits for Critical Information Infrastructure (CII, as defined under IT Act 2000) including banks, power grids (SCADA/ICS), and telecom networks, coordinated by NCIIPC. Regulatory mandates span CEA Regulations 2026 for the power sector, RBI Master Directions for banking, SEBI CSCRF for capital markets, and CERT-In Audit Guidelines 2025 for government systems. The JOCKY framework is well suited for creating audit scripts since collected forensic data is legally admissible and the investigation itself is silent, enabling detection of compromise without alerting adversaries already present on audited systems.
+
+Criminal Investigations. Deep forensic analysis of suspects' or victims' devices that evades on-device antivirus guards and permission-level restrictions could progress or resolve criminal investigations that are currently stalled by the inability to collect evidence covertly.
+
+Extremely Small and Easily Deployable. JOCKY payload binaries are microscopic and can be deployed on any device running Ubuntu or Windows. All runtime libraries are written in bare C and Assembly, and the build pipeline selects only the libraries, exploit modules, and drivers relevant to the target host, keeping the deployed payload as small and self-contained as possible.
+
+17. TECHNOLOGY STACK AND FEASIBILITY
+
+The compiler frontend is implemented in C++ using the Flex lexer generator, with the LLVM C++ API used directly for IR generation, optimization passes, and code generation. OLLVM-style obfuscation passes are implemented as custom LLVM transformation plugins in C++. The runtime libraries (jrt-core, jrt-escalate, jrt-blind) are written in bare C and inline Assembly with zero external dependencies, keeping binary size minimal and avoiding any runtime library dependency on the target host. The custom PE/ELF emitter replaces lld for toolchain profile forging. The C2 server is a single-binary executable embedding the web console (vanilla JS frontend). Result storage uses encrypted SQLite databases isolated per mission. Transport uses a custom TLS 1.3 implementation over cloud storage APIs with browser-profile fingerprint mimicry. Evidence signing uses Ed25519.
+
+All technical dependencies are open-source. LLVM, Flex, SQLite, and the cryptographic primitives are all mature, widely-deployed open-source projects with extensive documentation and active communities. No proprietary or foreign-controlled components are used anywhere in the stack.
+
+This solution is feasible because it composes well-understood, individually proven techniques into a unified pipeline rather than inventing novel research. Indirect syscalls (Hell's Gate, Halo's Gate) are documented in open-source projects. OLLVM-style obfuscation passes have been implemented multiple times across the security community. BYOVD techniques are well-documented with public driver catalogs. Forensic artifact parsing (MFT, USN, event logs, registry hives) has extensive open-source precedent (Sleuth Kit, libevtx, yara). JOCKY's contribution is the architectural integration: a compiler that guarantees these techniques are applied correctly and uniformly to every program, removing the operator error that makes existing tools detectable.

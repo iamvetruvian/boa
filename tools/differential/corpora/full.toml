@@ -1,0 +1,31 @@
+# Full green-slice corpus: every Test262 suite (module/async/host/time
+# tests excluded by filter, P2-red ids excluded via the gap matrix) plus
+# regression repros and the adversarial set. Weekly/nightly frequency.
+schema_version = 1
+tool = "boa_differential"
+name = "full"
+strict_variants = true
+
+[test262]
+root = "test262"
+slices = [
+  "test/built-ins",
+  "test/language",
+  "test/intl402",
+  "test/staging",
+  "test/annexB",
+]
+exclude_from_gap_matrix = "docs/conformance-gap.json"
+
+[regression]
+manifest = "tests/regression/regressions.toml"
+all_landed = true
+# Differential-incompatible: these repros pin engine-defined behavior, so no
+# two engines can agree on them. They stay green in the regression DB.
+exclude_ids = [
+  "new-on-non-constructor-message", # asserts Boa's exact error message text
+  "with-call-binding-semantics", # asserts Boa's internal proxy-trap counts
+]
+
+[adversarial]
+dir = "tools/differential/corpora/adversarial"

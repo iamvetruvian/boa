@@ -118,6 +118,73 @@ cargo run --release --bin boa_tester -- compare ./test-results-main ./test-resul
 cargo run --release --bin boa_tester -- compare ./test-results-main/latest.json ./test-results-feature/latest.json
 ```
 
+Pass `--fail-on=regression` to exit nonzero on any regression versus the
+base (broken tests, new panics/timeouts/crashes/harness errors, new skips);
+without `--fail-on` the comparison is advisory. `--triage <file>` marks
+known-bad ids as triaged and `--quarantine <file>` exempts known-flaky ids.
+
+### Validating the tester config
+
+Every ignore entry must carry a justification (reason, link, owner, dates,
+work item). Validate before pushing:
+
+```shell
+cargo run --release --bin boa_tester -- check-config --report
+```
+
+### Per-test timeouts
+
+Pass `--timeout <seconds>` to `run` to execute each test in an isolated
+subprocess that is killed and counted as a timeout after the budget
+expires. Use it in CI and for hang-prone areas; default runs stay
+in-process for speed.
+
+### Conformance trend gate
+
+Conformance only moves one way: every full run is checked against the
+committed gap matrix (`docs/conformance-gap.json`), and passes must not
+decrease while failures, ignores, and abnormal outcomes must not grow.
+After landing a conformance fix, refresh the matrix so the ratchet floor
+moves with you:
+
+```shell
+cargo run --release --bin boa_tester -- run -v --timeout 60 -o /tmp/full
+cargo run --release --bin boa_tester -- report /tmp/full --areas docs/gap-areas.toml -o docs
+```
+
+Commit the regenerated `docs/conformance-gap.json` and
+`docs/conformance-gap.md` with the fix. Area triage (suspected layer,
+owning work item, status) is curated in `docs/gap-areas.toml`, which
+regeneration never overwrites — update it when an area's state changes.
+
+### WPT host suites
+
+The `boa_wpt` crate runs the console/encoding/url/timers WPT suites with
+counted per-file outcomes (no panics on failure). Run it and gate on zero
+untriaged files:
+
+```shell
+cd tests/wpt
+export WPT_ROOT="$PWD/../../tests_wpt"
+export WPT_OUT="$PWD/../../results/wpt"
+cargo test --lib
+cargo run --bin wpt-report -- "$WPT_OUT/records.jsonl" --out "$WPT_OUT"
+```
+
+Every non-passing file must match an audited ignore entry in
+`test_wpt_config.toml` (pattern, reason, owner, expiry); anything else
+fails the gate. Triage new failures into the config with a `P2.wpt-*`
+work item instead of `#[exclude]`-ing them.
+
+### Upstream test feedback
+
+If a Test262 or WPT test looks wrong (not merely failing), do not
+silently ignore it: file a precise upstream issue with a minimal
+reproducer and the spec section it contradicts, then link the issue
+from the ignore entry's `link` field with an expiry so the exemption
+is revisited. Filing needs a human GitHub account; preparing the
+reproducer + spec citation is part of the fix loop.
+
 ## Documentation
 
 To build the development documentation, run:

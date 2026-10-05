@@ -1,0 +1,18 @@
+# Known crash signatures for pipeline dedupe (P4.6).
+#
+# Format: <sig-id> :: <match-substring> :: <status> :: <regression-id-or-empty>
+# A new crash whose signature contains <match-substring> is a DUPLICATE when
+# the rule status is open (no skeleton; append evidence to the live bug), and
+# a possible regression/new-in-class (skeleton written anyway) when landed.
+#
+# Rules must be tight: bare `exit=N` rules are forbidden (two hangs or two
+# aborts with no marker line never auto-dedupe; a human dedupes those).
+# Stack-overflow crashes all print "has overflowed its stack": the parser
+# rule below therefore doubles as the class rule — any new stack overflow
+# gets a skeleton flagged as a possible parser-nesting regression, and the
+# human splits it if the input shape differs.
+huge-sparse-join-abort :: memory allocation :: open :: huge-sparse-join-abort
+parser-deep-nesting-stack-overflow :: has overflowed its stack :: landed :: parser-deep-nesting-stack-overflow
+cyclic-proto-walk-stack-overflow :: deadly signal :: landed :: cyclic-proto-walk-stack-overflow
+dataview-unaligned-assert :: array_buffer/utils.rs :: landed :: dataview-unaligned-assert
+parser-universe-yield-drift :: outside the pre-parse universe :: open :: parser-universe-yield-drift

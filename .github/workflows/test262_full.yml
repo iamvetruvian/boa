@@ -1,0 +1,99 @@
+name: test262-full
+
+on:
+  # Full corpus on a schedule and on release-candidate tags. PRs run the
+  # affected-subset gate in `test262.yml` instead.
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  test262-full:
+    name: Full Test262 corpus (gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: boa
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Install mold linker
+        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Run the full test262 test suite
+        run: |
+          cd boa
+          mkdir -p ../results/test262-full
+          cargo run --release --bin boa_tester -- run -v --timeout 60 -o ../results/test262-full
+          cd ..
+
+      - name: Gate on compare (no regressions vs P0 baseline)
+        run: |
+          cd boa
+          ./target/release/boa_tester compare test-results-baseline/run-1 ../results/test262-full \
+            --fail-on=regression --quarantine test262_quarantine.toml
+
+      - name: Run the full suite under GC stress (P4.4)
+        run: |
+          cd boa
+          mkdir -p ../results/test262-stress
+          # Extended per-test budget: stress mode collects every 100
+          # allocations instead of at 1 MB, which is deliberately slower, and
+          # one pathological test (a 100k-deep ephemeron WeakMap chain,
+          # regress-1507322-deep-weakmap) needs ~60s stressed vs <1s normal.
+          # Do not lower this to the normal 60s without re-proving that test.
+          ./target/release/boa_tester run -v --timeout 300 --gc-stress -o ../results/test262-stress
+          cd ..
+
+      - name: Gate stress-vs-normal (no GC divergences)
+        run: |
+          cd boa
+          ./target/release/boa_tester compare ../results/test262-full ../results/test262-stress \
+            --fail-on=regression --quarantine test262_quarantine.toml
+
+      - name: Lint tester config
+        run: |
+          cd boa
+          ./target/release/boa_tester check-config
+
+      - name: Gate on trend ratchet (monotonic vs committed matrix)
+        run: |
+          cd boa
+          ./target/release/boa_tester report ../results/test262-full \
+            --areas docs/gap-areas.toml -o ../results/matrix-new \
+            --check docs/conformance-gap.json
+
+      - name: Verify Test262 pin
+        run: |
+          cd boa
+          bash scripts/verify-baseline.sh --test262-only
+
+      - name: Upload full results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: test262-full-results
+          path: results/test262-full
+
+      - name: Upload stress results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: test262-stress-results
+          path: results/test262-stress

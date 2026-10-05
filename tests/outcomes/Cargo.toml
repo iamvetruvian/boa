@@ -1,0 +1,17 @@
+[package]
+name = "boa_outcomes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Shared conformance outcome taxonomy (tester letters + counters) for Boa's Test262, WPT, and differential harnesses."
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,344 @@
+commit 970ea933e88600b6eddf769881a96ba0bd36e704
+Author: Nguyen Anh Tu (Elior) <122720156+xcb3d@users.noreply.github.com>
+Date:   Fri Sep 18 17:27:35 2026 +0000
+
+    fix(engine): keep pending return value in a dedicated slot across finally (#5514)
+    
+    Related test262 case: test/staging/sm/Function/return-finally.js (nested
+    try-finally where break discards an inner return).
+    
+    It changes the following:
+    - Keep an explicit return value that passes through a finally block in a
+    dedicated function-level register instead of the value stack, so abrupt
+    completions inside finally cannot leave a stale value behind for an
+    outer pending return.
+    - Save/restore the pending-return slot across finally blocks.
+    - Add a regression test for a nested return discarded by break, plus the
+    return-in-finally override case.
+    
+    Verification:
+    - test262 test/staging/sm/Function/return-finally.js passes (also fixes
+    the same-named generators case with the same root cause).
+    - cargo test -p boa_engine --lib passes; cargo clippy and cargo fmt
+    check pass.
+
+diff --git b/core/engine/src/bytecompiler/expression/mod.rs a/core/engine/src/bytecompiler/expression/mod.rs
+index 2c993c8d..c387b3ff 100644
+--- b/core/engine/src/bytecompiler/expression/mod.rs
++++ a/core/engine/src/bytecompiler/expression/mod.rs
+@@ -17,7 +17,7 @@ use std::ops::Deref;
+ 
+ use super::{Access, CallResultDest, Callable, NodeKind, Register, ToJsString};
+ use crate::{
+-    bytecompiler::{ByteCompiler, Literal, ReturnValueLocation},
++    bytecompiler::{ByteCompiler, Literal},
+     vm::{CallFrame, GeneratorResumeKind},
+ };
+ use boa_ast::{
+@@ -236,7 +236,7 @@ impl ByteCompiler<'_> {
+                 }
+                 self.close_active_iterators();
+ 
+-                self.r#return(ReturnValueLocation::OnStack);
++                self.r#return(true);
+ 
+                 self.patch_jump(throw_method_undefined);
+ 
+diff --git b/core/engine/src/bytecompiler/jump_control.rs a/core/engine/src/bytecompiler/jump_control.rs
+index 3c27e633..4fc1020a 100644
+--- b/core/engine/src/bytecompiler/jump_control.rs
++++ a/core/engine/src/bytecompiler/jump_control.rs
+@@ -67,34 +67,12 @@ pub(crate) enum JumpRecordAction {
+     },
+ }
+ 
+-/// Where an explicit `return` value is stored while `finally` blocks execute.
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+-pub(crate) enum ReturnValueLocation {
+-    /// On the value stack.
+-    ///
+-    /// Used when the `return` doesn't pass through any `finally` block, so no
+-    /// abrupt completion can interleave and leave stale values behind.
+-    OnStack,
+-    /// In the function-level pending-return register (see
+-    /// [`ByteCompiler::pending_return_slot`]).
+-    ///
+-    /// Used when the `return` passes through a `finally` block, since abrupt
+-    /// completions inside `finally` (e.g. `break`) skip the jump-table handler
+-    /// that would pop a stack slot.
+-    InSlot(u32),
+-    /// In the accumulator.
+-    ///
+-    /// Used for implicit function returns, where the completion value is
+-    /// already in the accumulator.
+-    InAccumulator,
+-}
+-
+ /// Local Control flow type.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+ pub(crate) enum JumpRecordKind {
+     Break,
+     Continue,
+-    Return { value_location: ReturnValueLocation },
++    Return { return_value_on_stack: bool },
+ }
+ 
+ /// This represents a local control flow handling. See [`JumpRecordKind`] for types.
+@@ -157,18 +135,14 @@ impl JumpRecord {
+         match self.kind {
+             JumpRecordKind::Break => compiler.patch_jump(self.label),
+             JumpRecordKind::Continue => compiler.patch_jump_with_target(self.label, start_address),
+-            JumpRecordKind::Return { value_location } => {
+-                match value_location {
+-                    ReturnValueLocation::OnStack => {
+-                        let value = compiler.register_allocator.alloc();
+-                        compiler.pop_into_register(&value);
+-                        compiler.bytecode.emit_set_accumulator(value.variable());
+-                        compiler.register_allocator.dealloc(value);
+-                    }
+-                    ReturnValueLocation::InSlot(slot) => {
+-                        compiler.bytecode.emit_set_accumulator(slot.into());
+-                    }
+-                    ReturnValueLocation::InAccumulator => {}
++            JumpRecordKind::Return {
++                return_value_on_stack,
++            } => {
++                if return_value_on_stack {
++                    let value = compiler.register_allocator.alloc();
++                    compiler.pop_into_register(&value);
++                    compiler.bytecode.emit_set_accumulator(value.variable());
++                    compiler.register_allocator.dealloc(value);
+                 }
+ 
+                 match (compiler.is_async(), compiler.is_generator()) {
+diff --git b/core/engine/src/bytecompiler/mod.rs a/core/engine/src/bytecompiler/mod.rs
+index 3fa0e6a3..996e514d 100644
+--- b/core/engine/src/bytecompiler/mod.rs
++++ a/core/engine/src/bytecompiler/mod.rs
+@@ -88,7 +88,7 @@ pub(crate) use declarations::{
+     global_declaration_instantiation_context, prepare_eval_declaration_instantiation,
+ };
+ pub(crate) use function::FunctionCompiler;
+-pub(crate) use jump_control::{JumpControlInfo, ReturnValueLocation};
++pub(crate) use jump_control::JumpControlInfo;
+ pub(crate) use register::*;
+ 
+ pub(crate) trait ToJsString {
+@@ -544,14 +544,6 @@ pub struct ByteCompiler<'ctx> {
+ 
+     jump_info: Vec<JumpControlInfo>,
+ 
+-    /// Register that holds an explicit `return` value while `finally` blocks execute.
+-    ///
+-    /// Values are kept in a dedicated register instead of the value stack so that
+-    /// abrupt completions inside a `finally` block (e.g. `break`) cannot leave
+-    /// stale values behind for an outer pending `return` to read.
+-    /// Allocated lazily by the first `return` that passes through a `finally`.
+-    pending_return_slot: Option<u32>,
+-
+     /// Used to handle exception throws that escape the async function types.
+     ///
+     /// Async functions and async generator functions, need to be closed and resolved.
+@@ -678,7 +670,6 @@ impl<'ctx> ByteCompiler<'ctx> {
+             bindings_map: FxHashMap::default(),
+             const_binding_cache: FxHashMap::default(),
+             jump_info: Vec::new(),
+-            pending_return_slot: None,
+             async_handler: None,
+             json_parse,
+             variable_scope,
+@@ -722,18 +713,6 @@ impl<'ctx> ByteCompiler<'ctx> {
+         self.interner
+     }
+ 
+-    /// Returns the register used to hold an explicit `return` value while
+-    /// `finally` blocks execute, allocating it on first use.
+-    pub(crate) fn pending_return_slot(&mut self) -> u32 {
+-        if let Some(slot) = self.pending_return_slot {
+-            slot
+-        } else {
+-            let slot = self.register_allocator.alloc_persistent().index();
+-            self.pending_return_slot = Some(slot);
+-            slot
+-        }
+-    }
+-
+     fn get_or_insert_literal(&mut self, literal: Literal) -> u32 {
+         if let Some(index) = self.literals_map.get(&literal) {
+             return *index;
+@@ -2790,7 +2769,7 @@ impl<'ctx> ByteCompiler<'ctx> {
+         if let Some(async_handler) = self.async_handler {
+             self.patch_handler(async_handler);
+         }
+-        self.r#return(ReturnValueLocation::InAccumulator);
++        self.r#return(false);
+ 
+         let final_bytecode_len = self.next_opcode_location();
+ 
+diff --git b/core/engine/src/bytecompiler/statement/mod.rs a/core/engine/src/bytecompiler/statement/mod.rs
+index 86d9e78c..0b10b4ba 100644
+--- b/core/engine/src/bytecompiler/statement/mod.rs
++++ a/core/engine/src/bytecompiler/statement/mod.rs
+@@ -1,6 +1,4 @@
+-use super::jump_control::{
+-    JumpControlInfo, JumpRecord, JumpRecordAction, JumpRecordKind, ReturnValueLocation,
+-};
++use super::jump_control::{JumpRecord, JumpRecordAction, JumpRecordKind};
+ use crate::{bytecompiler::ByteCompiler, vm::CallFrame};
+ use boa_ast::Statement;
+ 
+@@ -67,19 +65,6 @@ impl ByteCompiler<'_> {
+                 self.compile_switch(switch, use_expr);
+             }
+             Statement::Return(ret) => {
+-                // If the `return` passes through a `finally` block, keep the value in
+-                // a dedicated register instead of the value stack, so that abrupt
+-                // completions inside `finally` (e.g. `break`) cannot leave a stale
+-                // value behind for an outer pending `return` to read.
+-                let slot = if self
+-                    .jump_info
+-                    .iter()
+-                    .any(JumpControlInfo::is_try_with_finally_block)
+-                {
+-                    Some(self.pending_return_slot())
+-                } else {
+-                    None
+-                };
+                 if let Some(expr) = ret.target() {
+                     if self.is_async_generator() {
+                         let value = self.register_allocator.alloc();
+@@ -90,32 +75,16 @@ impl ByteCompiler<'_> {
+                         self.pop_into_register(&value);
+                         self.generator_next(&value, &resume_kind);
+                         self.register_allocator.dealloc(resume_kind);
+-                        if let Some(slot) = slot {
+-                            self.bytecode.emit_move(slot.into(), value.variable());
+-                        } else {
+-                            self.push_from_register(&value);
+-                        }
+-                        self.register_allocator.dealloc(value);
+-                    } else if let Some(slot) = slot {
+-                        let value = self.register_allocator.alloc();
+-                        self.compile_expr(expr, &value);
+-                        self.bytecode.emit_move(slot.into(), value.variable());
++                        self.push_from_register(&value);
+                         self.register_allocator.dealloc(value);
+                     } else {
+                         self.compile_expr_to_stack(expr);
+                     }
+-                } else if let Some(slot) = slot {
+-                    self.bytecode
+-                        .emit_move(slot.into(), CallFrame::undefined_register().variable());
+                 } else {
+                     self.push_from_register(&CallFrame::undefined_register());
+                 }
+ 
+-                if let Some(slot) = slot {
+-                    self.r#return(ReturnValueLocation::InSlot(slot));
+-                } else {
+-                    self.r#return(ReturnValueLocation::OnStack);
+-                }
++                self.r#return(true);
+             }
+             Statement::Try(t) => self.compile_try(t, use_expr),
+             Statement::Expression(expr) => {
+@@ -133,11 +102,16 @@ impl ByteCompiler<'_> {
+         }
+     }
+ 
+-    pub(crate) fn r#return(&mut self, value_location: ReturnValueLocation) {
++    pub(crate) fn r#return(&mut self, return_value_on_stack: bool) {
+         let actions = self.return_jump_record_actions();
+ 
+-        JumpRecord::new(JumpRecordKind::Return { value_location }, actions)
+-            .perform_actions(Self::DUMMY_ADDRESS, self);
++        JumpRecord::new(
++            JumpRecordKind::Return {
++                return_value_on_stack,
++            },
++            actions,
++        )
++        .perform_actions(Self::DUMMY_ADDRESS, self);
+     }
+ 
+     fn return_jump_record_actions(&self) -> Vec<JumpRecordAction> {
+diff --git b/core/engine/src/bytecompiler/statement/try.rs a/core/engine/src/bytecompiler/statement/try.rs
+index 6a75ef6c..dc2cf51e 100644
+--- b/core/engine/src/bytecompiler/statement/try.rs
++++ a/core/engine/src/bytecompiler/statement/try.rs
+@@ -202,28 +202,12 @@ impl ByteCompiler<'_> {
+ 
+     pub(crate) fn compile_finally_stmt(&mut self, finally: &Finally) {
+         // TODO: We could probably remove the Get/SetAccumulatorFromStack if we check that there is no break/continues statements.
+-        //
+-        // Preserve a pending explicit `return` value across the `finally` block.
+-        // Abrupt completions inside `finally` skip the restore, which correctly
+-        // discards the pending value.
+-        let slot_save = self.pending_return_slot.map(|slot| {
+-            let saved = self.register_allocator.alloc();
+-            self.bytecode.emit_move(saved.variable(), slot.into());
+-            saved
+-        });
+         let value = self.register_allocator.alloc();
+         self.bytecode
+             .emit_set_register_from_accumulator(value.variable());
+         self.compile_catch_finally_block(finally.block(), false);
+         self.bytecode.emit_set_accumulator(value.variable());
+         self.register_allocator.dealloc(value);
+-        if let Some(saved) = slot_save {
+-            let slot = self
+-                .pending_return_slot
+-                .expect("pending return slot must still exist");
+-            self.bytecode.emit_move(slot.into(), saved.variable());
+-            self.register_allocator.dealloc(saved);
+-        }
+     }
+ 
+     /// Compile a catch or finally block.
+diff --git b/core/engine/src/tests/control_flow/mod.rs a/core/engine/src/tests/control_flow/mod.rs
+index 6c606449..13b4b7f7 100644
+--- b/core/engine/src/tests/control_flow/mod.rs
++++ a/core/engine/src/tests/control_flow/mod.rs
+@@ -255,42 +255,6 @@ fn finally_with_loop_break() {
+     )]);
+ }
+ 
+-#[test]
+-fn nested_finally_break_discards_inner_return() {
+-    run_test_actions([
+-        TestAction::assert_eq(
+-            indoc! {r#"
+-                function f() {
+-                    try {
+-                        return 42;
+-                    } finally {
+-                        do try {
+-                            return 43;
+-                        } finally {
+-                            break;
+-                        } while (0);
+-                    }
+-                }
+-                f();
+-            "#},
+-            42,
+-        ),
+-        TestAction::assert_eq(
+-            indoc! {r#"
+-                function f() {
+-                    try {
+-                        return 42;
+-                    } finally {
+-                        return 43;
+-                    }
+-                }
+-                f();
+-            "#},
+-            43,
+-        ),
+-    ]);
+-}
+-
+ #[test]
+ fn single_case_switch() {
+     run_test_actions([TestAction::assert_eq(

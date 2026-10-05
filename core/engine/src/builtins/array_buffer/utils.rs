@@ -424,7 +424,8 @@ fn compute_batch_offsets(ptr_addr: usize, count: usize) -> (usize, usize, usize)
 ///
 /// - `src` must be valid for `count` reads of `AtomicU8`.
 /// - `dest` must be valid for `count` writes of `AtomicU8`.
-/// - The memory regions must not overlap.
+/// - The memory regions must not overlap, unless `src >= dest` (forward order is then
+///   still correct, as each chunk is read before any overlapping write can reach it).
 unsafe fn batched_atomic_copy_forward(src: *const AtomicU8, dest: *const AtomicU8, count: usize) {
     if count == 0 {
         return;
@@ -882,6 +883,31 @@ mod tests_miri {
     use super::*;
     use portable_atomic::AtomicU8;
     use std::sync::atomic::Ordering;
+
+    /// Tests `batched_atomic_copy_forward` with a sub-batch same-misalignment
+    /// copy (regression test for a6101fe1: `chunks == 0` used to trip the
+    /// Phase-1 alignment assert). Offsets derive from the observed base, so
+    /// the misalignment holds for any allocator layout.
+    #[test]
+    fn batched_forward_sub_batch_same_misalignment() {
+        let data: Vec<AtomicU8> = (0..64).map(|i| AtomicU8::new(i as u8)).collect();
+        let base = data.as_ptr() as usize;
+        // Dest misalignment 6 (padding 2), count 1: pre-fix, head = 1 left
+        // dest+head misaligned and the debug assert fired.
+        let off = (6 + BATCH_SIZE - base % BATCH_SIZE) % BATCH_SIZE;
+        // SAFETY: off < 8, so [off, off+1) is inside the 64-element Vec.
+        let src = unsafe { data.as_ptr().add(off) };
+        // SAFETY: off + 33 <= 40 < 64, and the range is disjoint from src's.
+        let dest = unsafe { data.as_ptr().add(off + 32) };
+        let count = 1;
+
+        // SAFETY: both pointers are valid for 1 read/write; regions disjoint.
+        unsafe { batched_atomic_copy_forward(src, dest, count) };
+
+        // SAFETY: `dest` is valid for `count` reads from its base.
+        let actual = unsafe { (*dest.add(0)).load(Ordering::Relaxed) };
+        assert_eq!(actual, off as u8);
+    }
 
     /// Tests `batched_atomic_copy_forward` with misaligned pointers
     /// (different misalignment) to exercise the byte-by-byte fallback.
