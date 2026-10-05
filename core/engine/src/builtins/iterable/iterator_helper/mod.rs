@@ -173,7 +173,8 @@ impl IteratorHelper {
         // All these steps don't map directly to the spec, but we can consider
         // the code below as "suspending" the underlying generator or returning
         // if the result is available.
-        let result = match coroutine.call(CompletionRecord::Normal(JsValue::undefined()), context) {
+        // 11. Return ? result.
+        match coroutine.call(CompletionRecord::Normal(JsValue::undefined()), context) {
             ControlFlow::Continue(value) => {
                 helper.borrow_mut().data_mut().coroutine =
                     IteratorHelperState::SuspendedYield(coroutine);
@@ -192,10 +193,7 @@ impl IteratorHelper {
                 helper.borrow_mut().data_mut().coroutine = IteratorHelperState::Completed;
                 Err(err)
             }
-        };
-
-        // 11. Return ? result.
-        result
+        }
     }
 
     /// `%IteratorHelperPrototype%.return ( )`
@@ -287,7 +285,8 @@ impl IteratorHelper {
         //     running execution context.
         //
         // ... Delegate status tracking to each transformer.
-        let result = match coroutine.call(CompletionRecord::Return(JsValue::undefined()), context) {
+        // 12. Return ? result.
+        match coroutine.call(CompletionRecord::Return(JsValue::undefined()), context) {
             // We technically would need to follow step 3.b here and return
             // the yielded value, but our transformers shouldn't keep executing
             // after calling `return`, so it's better to panic here to catch bugs.
@@ -309,10 +308,7 @@ impl IteratorHelper {
                 helper.borrow_mut().data_mut().coroutine = IteratorHelperState::Completed;
                 Err(err)
             }
-        };
-
-        // 12. Return ? result.
-        result
+        }
     }
 
     /// [`GeneratorValidate ( generator, generatorBrand )`][spec]
