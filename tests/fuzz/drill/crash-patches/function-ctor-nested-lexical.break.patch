@@ -1,0 +1,61 @@
+diff --git a/core/ast/src/function/ordinary_function.rs b/core/ast/src/function/ordinary_function.rs
+index 09f07e13..76701afa 100644
+--- a/core/ast/src/function/ordinary_function.rs
++++ b/core/ast/src/function/ordinary_function.rs
+@@ -5,9 +5,7 @@ use crate::{
+     join_nodes,
+     operations::{ContainsSymbol, contains},
+     scope::{FunctionScopes, Scope},
+-    scope_analyzer::{
+-        analyze_binding_escapes, collect_bindings, optimize_scope_indices_function_constructor,
+-    },
++    scope_analyzer::{analyze_binding_escapes, collect_bindings},
+     visitor::{VisitWith, Visitor, VisitorMut},
+ };
+ use boa_interner::{Interner, ToIndentedString};
+@@ -283,9 +281,7 @@ impl FunctionExpression {
+         interner: &Interner,
+     ) -> Result<(), &'static str> {
+         collect_bindings(self, strict, false, scope, interner)?;
+-        analyze_binding_escapes(self, false, scope.clone(), interner)?;
+-        optimize_scope_indices_function_constructor(self, scope);
+-        Ok(())
++        analyze_binding_escapes(self, false, scope.clone(), interner)
+     }
+ }
+ 
+diff --git a/core/ast/src/scope_analyzer.rs b/core/ast/src/scope_analyzer.rs
+index c0f30c82..35dc48c6 100644
+--- a/core/ast/src/scope_analyzer.rs
++++ b/core/ast/src/scope_analyzer.rs
+@@ -1230,30 +1230,6 @@ where
+     let _ = visitor.visit(node.into());
+ }
+ 
+-/// Like [`optimize_scope_indices`] but for a [`FunctionExpression`] compiled
+-/// by the `Function` constructor with `force_function_scope = true`.
+-///
+-/// The `Function` constructor always pushes a function scope at runtime, so
+-/// the optimizer must account for that even when the function scope would
+-/// otherwise be elided.
+-pub(crate) fn optimize_scope_indices_function_constructor(
+-    node: &mut FunctionExpression,
+-    scope: &Scope,
+-) {
+-    let mut visitor = ScopeIndexVisitor {
+-        index: scope.scope_index(),
+-    };
+-    let _ = visitor.visit_function_like(
+-        &mut node.body,
+-        &mut node.parameters,
+-        &mut node.scopes,
+-        &mut node.name_scope,
+-        false,
+-        // Always force the function scope for the Function constructor.
+-        true,
+-    );
+-}
+-
+ struct ScopeIndexVisitor {
+     index: u32,
+ }

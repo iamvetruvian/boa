@@ -39,9 +39,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
           components: rustfmt
 
       - name: Format (rustfmt)
@@ -60,6 +60,37 @@ jobs:
       - name: Check for typos
         uses: crate-ci/typos@512fc24f32f44ab01972217aaaf3dc86ec234d53 # v1.50.2
 
+  baseline:
+    name: Baseline pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Verify baseline pins
+        run: bash scripts/verify-baseline.sh
+
+  unsafe_inventory:
+    name: Unsafe inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check unsafe inventory is current and fully audited
+        run: bash scripts/check-unsafe-inventory.sh
+
   clippy:
     name: Lint
     runs-on: ubuntu-latest
@@ -75,9 +106,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
           components: clippy
 
       - name: Cache Cargo
@@ -116,9 +147,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -146,11 +177,15 @@ jobs:
         run: echo "rust_version=$(grep '^rust-version' Cargo.toml | cut -d' ' -f3 | tr -d '"')" >> $GITHUB_OUTPUT
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # MSRV from Cargo.toml
         with:
           toolchain: ${{ steps.rust_version.outputs.rust_version }}
 
       - name: Check compilation
+        # `rust-toolchain.toml` pins stable; the MSRV check must run on the
+        # minimum supported version instead (see `docs/baseline.md`).
+        env:
+          RUSTUP_TOOLCHAIN: ${{ steps.rust_version.outputs.rust_version }}
         run: cargo check --all-features --all-targets
 
   coverage:
@@ -178,7 +213,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -235,9 +272,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
 
       - name: Install Cargo insta
         uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
@@ -291,9 +328,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
           target: ${{ matrix.target }}
 
       - name: Install Cross
@@ -317,6 +354,10 @@ jobs:
     name: Miri
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # `rust-toolchain.toml` pins stable; Miri needs nightly, so override the
+    # file for every step of this job (see `docs/baseline.md`).
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
     needs:
       - fmt
       - typos
@@ -337,16 +378,82 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust nightly with miri
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # nightly
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
         with:
-          toolchain: nightly
+          toolchain: nightly-2026-10-01
           components: miri
 
       - name: Setup miri
         run: cargo miri setup
 
+      - name: Check miri filter gate
+        run: bash scripts/check-miri-filter.sh
+
       - name: Run miri tests
-        run: cargo miri test --workspace --exclude boa_cli --exclude boa_examples miri
+        # NOTE: fuzz-harness members are excluded: they enable
+        # `boa_engine/fuzz` workspace-wide, which activates the
+        # zero-default instruction budget and fails JS-running tests.
+        # `scripts/check-miri-filter.sh` enforces this list.
+        # NOTE: `--test-threads=1`: one Context-building test costs ~3GB RSS
+        # under Miri; even 2-way parallelism OOM-killed a 15GB runner
+        # (proven 2026-10-04, anon-rss 6.4GB at 2 threads, 6.9GB at 16).
+        # The gate script enforces this throttle too.
+        run: cargo miri test --workspace --exclude boa_cli --exclude boa_examples --exclude boa_fuzz --exclude boa_fuzzilli miri -- --test-threads=1
+
+  # P7.2: per-PR mutation sample. Mutants are selected by the PR's own diff
+  # (--in-diff takes a diff FILE: `git diff base...HEAD -- core/`), scoped to
+  # touched packages plus the engine suite (leaf-crate behavior is mostly
+  # tested upstream). Sampled runs gate with --threshold 0: a rate bar on a
+  # 5-mutant sample is noise, so the bar is FULL ACCOUNTING instead — every
+  # survivor must be killed by a new test in the PR or justified in
+  # docs/mutation-survivors.md (reviewed like an ignore entry). No core diff
+  # (docs-only PRs) exits 0 immediately. `core/<x>` maps to `boa_<x>` for all
+  # ten core dirs (verified 2026-10-04).
+  mutation_sample:
+    name: Mutation sample (PR diff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs:
+      - fmt
+      - typos
+      - clippy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
+        with:
+          toolchain: 1.94.0
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version 27.1.0 --locked
+
+      - name: Mutate touched code
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            BASE="HEAD~1"
+          fi
+          git diff "$BASE"...HEAD -- core/ > /tmp/pr.diff
+          [ -s /tmp/pr.diff ] || { echo "no core changes; skipping"; exit 0; }
+          DIRS=$(grep -oP '^diff --git a/core/\K[^/]+' /tmp/pr.diff | sort -u)
+          PFLAGS=""; TFLAGS="--test-package boa_engine"
+          for d in $DIRS; do
+            PFLAGS="$PFLAGS -p boa_$d"
+            TFLAGS="$TFLAGS --test-package boa_$d"
+          done
+          # shellcheck disable=SC2086
+          MUTANTS_EXTRA_ARGS="--in-diff /tmp/pr.diff" \
+            bash scripts/run-mutation.sh $PFLAGS $TFLAGS \
+              --threshold 0 -o target/mutants-pr
 
   build-fuzz:
     name: Fuzzing
@@ -369,9 +476,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -383,6 +490,92 @@ jobs:
 
       - name: Build fuzz
         run: cd tests/fuzz && cargo fuzz build -s none --dev
+
+      - name: Test fuzz harness library
+        run: cd tests/fuzz && cargo test --lib
+
+  fuzz-smoke:
+    name: Fuzz smoke (per-PR gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # `cargo fuzz run` needs nightly (libFuzzer instrumentation); reuse the
+    # P0 pinned nightly via the same override pattern as the Miri job.
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+    needs:
+      - fmt
+      - typos
+      - clippy
+      - docs
+      - msrv
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with rust-src
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: rust-src
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-fuzz
+        uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
+        with:
+          crate: cargo-fuzz
+
+      - name: Sync regression seeds into corpora
+        run: cd tests/fuzz && ./sync-seeds.sh
+
+      - name: Smoke parser-idempotency (300s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none parser-idempotency -- -max_total_time=300 -seed=42
+
+      - name: Smoke vm-implied (300s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none vm-implied -- -max_total_time=300 -seed=42
+
+      - name: Smoke bytecompiler-implied (300s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none bytecompiler-implied -- -max_total_time=300 -seed=42
+
+      - name: Smoke source-bytes (120s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none source-bytes -- -max_total_time=120 -seed=42
+
+      - name: Smoke module-specifier (120s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none module-specifier -- -max_total_time=120 -seed=42
+
+      - name: Smoke url-parse (120s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none url-parse -- -max_total_time=120 -seed=42
+
+      - name: Smoke fetch-response (120s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none fetch-response -- -max_total_time=120 -seed=42
+
+      - name: Smoke cli-exec (120s, fixed seed)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none cli-exec -- -max_total_time=120 -seed=42
+
+      - name: Cache oracle binary
+        uses: actions/cache@9255dc2d030a5baf3d63b345a4ffbef6b8a67427f # v10.0.0
+        with:
+          path: target/oracle
+          key: oracle-${{ hashFiles('scripts/fetch-oracle.sh') }}
+
+      - name: Fetch pinned oracle
+        run: bash scripts/fetch-oracle.sh
+
+      - name: Differential smoke vm-implied vs oracle (120s, fixed seed)
+        env:
+          BOA_FUZZ_ORACLE: ${{ github.workspace }}/target/oracle/js
+        run: cd tests/fuzz && cargo fuzz run --dev -s none vm-implied -- -max_total_time=120 -seed=7
+
+      - name: Upload crash artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: fuzz-smoke-crashes
+          path: tests/fuzz/artifacts/
+          retention-days: 14
 
   build-run-examples:
     name: Build & run examples
@@ -405,9 +598,9 @@ jobs:
           persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned stable
         with:
-          toolchain: stable
+          toolchain: 1.94.0
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2

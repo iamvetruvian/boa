@@ -1,0 +1,1859 @@
+{
+  "battery_version": 1,
+  "sources": [
+    "battery",
+    "battery-opt",
+    "t262-static"
+  ],
+  "merged": [
+    {
+      "cell": "Add",
+      "op": "Add",
+      "refinement": null,
+      "static_files": 23239,
+      "dynamic": 2712
+    },
+    {
+      "cell": "AsyncGenerator",
+      "op": "AsyncGenerator",
+      "refinement": null,
+      "static_files": 4129,
+      "dynamic": 6
+    },
+    {
+      "cell": "AsyncGeneratorClose",
+      "op": "AsyncGeneratorClose",
+      "refinement": null,
+      "static_files": 4129,
+      "dynamic": 2
+    },
+    {
+      "cell": "AsyncGeneratorYield",
+      "op": "AsyncGeneratorYield",
+      "refinement": null,
+      "static_files": 1304,
+      "dynamic": 14
+    },
+    {
+      "cell": "Await",
+      "op": "Await",
+      "refinement": null,
+      "static_files": 2793,
+      "dynamic": 232
+    },
+    {
+      "cell": "BindThisValue",
+      "op": "BindThisValue",
+      "refinement": null,
+      "static_files": 850,
+      "dynamic": 12
+    },
+    {
+      "cell": "BitAnd",
+      "op": "BitAnd",
+      "refinement": null,
+      "static_files": 7405,
+      "dynamic": 1331
+    },
+    {
+      "cell": "BitNot",
+      "op": "BitNot",
+      "refinement": null,
+      "static_files": 21,
+      "dynamic": 0
+    },
+    {
+      "cell": "BitOr",
+      "op": "BitOr",
+      "refinement": null,
+      "static_files": 7380,
+      "dynamic": 1326
+    },
+    {
+      "cell": "BitXor",
+      "op": "BitXor",
+      "refinement": null,
+      "static_files": 7372,
+      "dynamic": 1380
+    },
+    {
+      "cell": "Call",
+      "op": "Call",
+      "refinement": null,
+      "static_files": 61432,
+      "dynamic": 6330
+    },
+    {
+      "cell": "CallEval",
+      "op": "CallEval",
+      "refinement": null,
+      "static_files": 1380,
+      "dynamic": 20
+    },
+    {
+      "cell": "CallEvalSpread",
+      "op": "CallEvalSpread",
+      "refinement": null,
+      "static_files": 4,
+      "dynamic": 0
+    },
+    {
+      "cell": "CallEval|argv-0",
+      "op": "CallEval",
+      "refinement": "argv-0",
+      "static_files": 6,
+      "dynamic": 0
+    },
+    {
+      "cell": "CallEval|argv-1",
+      "op": "CallEval",
+      "refinement": "argv-1",
+      "static_files": 1370,
+      "dynamic": 8
+    },
+    {
+      "cell": "CallEval|argv-2",
+      "op": "CallEval",
+      "refinement": "argv-2",
+      "static_files": 3,
+      "dynamic": 0
+    },
+    {
+      "cell": "CallEval|argv-3",
+      "op": "CallEval",
+      "refinement": "argv-3",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|argv-4",
+      "op": "CallEval",
+      "refinement": "argv-4",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|argv-5",
+      "op": "CallEval",
+      "refinement": "argv-5",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|argv-6",
+      "op": "CallEval",
+      "refinement": "argv-6",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|argv-7",
+      "op": "CallEval",
+      "refinement": "argv-7",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|argv-many",
+      "op": "CallEval",
+      "refinement": "argv-many",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallEval|err-SyntaxError",
+      "op": "CallEval",
+      "refinement": "err-SyntaxError",
+      "static_files": 0,
+      "dynamic": 2
+    },
+    {
+      "cell": "CallSpread",
+      "op": "CallSpread",
+      "refinement": null,
+      "static_files": 151,
+      "dynamic": 0
+    },
+    {
+      "cell": "Call|argv-0",
+      "op": "Call",
+      "refinement": "argv-0",
+      "static_files": 24796,
+      "dynamic": 1800
+    },
+    {
+      "cell": "Call|argv-1",
+      "op": "Call",
+      "refinement": "argv-1",
+      "static_files": 35833,
+      "dynamic": 1706
+    },
+    {
+      "cell": "Call|argv-2",
+      "op": "Call",
+      "refinement": "argv-2",
+      "static_files": 46018,
+      "dynamic": 2812
+    },
+    {
+      "cell": "Call|argv-3",
+      "op": "Call",
+      "refinement": "argv-3",
+      "static_files": 29706,
+      "dynamic": 8
+    },
+    {
+      "cell": "Call|argv-4",
+      "op": "Call",
+      "refinement": "argv-4",
+      "static_files": 1275,
+      "dynamic": 4
+    },
+    {
+      "cell": "Call|argv-5",
+      "op": "Call",
+      "refinement": "argv-5",
+      "static_files": 231,
+      "dynamic": 0
+    },
+    {
+      "cell": "Call|argv-6",
+      "op": "Call",
+      "refinement": "argv-6",
+      "static_files": 160,
+      "dynamic": 0
+    },
+    {
+      "cell": "Call|argv-7",
+      "op": "Call",
+      "refinement": "argv-7",
+      "static_files": 96,
+      "dynamic": 0
+    },
+    {
+      "cell": "Call|argv-many",
+      "op": "Call",
+      "refinement": "argv-many",
+      "static_files": 2025,
+      "dynamic": 0
+    },
+    {
+      "cell": "Call|err-TypeError",
+      "op": "Call",
+      "refinement": "err-TypeError",
+      "static_files": 0,
+      "dynamic": 1612
+    },
+    {
+      "cell": "Case",
+      "op": "Case",
+      "refinement": null,
+      "static_files": 6061,
+      "dynamic": 1688
+    },
+    {
+      "cell": "CheckReturn",
+      "op": "CheckReturn",
+      "refinement": null,
+      "static_files": 68518,
+      "dynamic": 5074
+    },
+    {
+      "cell": "Coalesce",
+      "op": "Coalesce",
+      "refinement": null,
+      "static_files": 8415,
+      "dynamic": 3449
+    },
+    {
+      "cell": "ConcatToString",
+      "op": "ConcatToString",
+      "refinement": null,
+      "static_files": 2849,
+      "dynamic": 0
+    },
+    {
+      "cell": "CopyDataProperties",
+      "op": "CopyDataProperties",
+      "refinement": null,
+      "static_files": 571,
+      "dynamic": 0
+    },
+    {
+      "cell": "CreateForInIterator",
+      "op": "CreateForInIterator",
+      "refinement": null,
+      "static_files": 500,
+      "dynamic": 2
+    },
+    {
+      "cell": "CreateIteratorResult",
+      "op": "CreateIteratorResult",
+      "refinement": null,
+      "static_files": 831,
+      "dynamic": 0
+    },
+    {
+      "cell": "CreateMappedArgumentsObject",
+      "op": "CreateMappedArgumentsObject",
+      "refinement": null,
+      "static_files": 985,
+      "dynamic": 0
+    },
+    {
+      "cell": "CreatePromiseCapability",
+      "op": "CreatePromiseCapability",
+      "refinement": null,
+      "static_files": 1684,
+      "dynamic": 202
+    },
+    {
+      "cell": "CreateUnmappedArgumentsObject",
+      "op": "CreateUnmappedArgumentsObject",
+      "refinement": null,
+      "static_files": 237,
+      "dynamic": 0
+    },
+    {
+      "cell": "Dec",
+      "op": "Dec",
+      "refinement": null,
+      "static_files": 10797,
+      "dynamic": 2326
+    },
+    {
+      "cell": "DefEvalVar",
+      "op": "DefEvalVar",
+      "refinement": null,
+      "static_files": 0,
+      "dynamic": 2
+    },
+    {
+      "cell": "DefInitVar",
+      "op": "DefInitVar",
+      "refinement": null,
+      "static_files": 6795,
+      "dynamic": 14
+    },
+    {
+      "cell": "DefVar",
+      "op": "DefVar",
+      "refinement": null,
+      "static_files": 101,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassGetterByName",
+      "op": "DefineClassGetterByName",
+      "refinement": null,
+      "static_files": 1043,
+      "dynamic": 2
+    },
+    {
+      "cell": "DefineClassGetterByValue",
+      "op": "DefineClassGetterByValue",
+      "refinement": null,
+      "static_files": 98,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassMethodByName",
+      "op": "DefineClassMethodByName",
+      "refinement": null,
+      "static_files": 3067,
+      "dynamic": 8
+    },
+    {
+      "cell": "DefineClassMethodByValue",
+      "op": "DefineClassMethodByValue",
+      "refinement": null,
+      "static_files": 102,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassSetterByName",
+      "op": "DefineClassSetterByName",
+      "refinement": null,
+      "static_files": 52,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassSetterByValue",
+      "op": "DefineClassSetterByValue",
+      "refinement": null,
+      "static_files": 97,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassStaticGetterByName",
+      "op": "DefineClassStaticGetterByName",
+      "refinement": null,
+      "static_files": 1077,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassStaticGetterByValue",
+      "op": "DefineClassStaticGetterByValue",
+      "refinement": null,
+      "static_files": 103,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassStaticMethodByName",
+      "op": "DefineClassStaticMethodByName",
+      "refinement": null,
+      "static_files": 2403,
+      "dynamic": 2
+    },
+    {
+      "cell": "DefineClassStaticMethodByValue",
+      "op": "DefineClassStaticMethodByValue",
+      "refinement": null,
+      "static_files": 90,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassStaticSetterByName",
+      "op": "DefineClassStaticSetterByName",
+      "refinement": null,
+      "static_files": 44,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineClassStaticSetterByValue",
+      "op": "DefineClassStaticSetterByValue",
+      "refinement": null,
+      "static_files": 94,
+      "dynamic": 0
+    },
+    {
+      "cell": "DefineOwnPropertyByName",
+      "op": "DefineOwnPropertyByName",
+      "refinement": null,
+      "static_files": 21098,
+      "dynamic": 50
+    },
+    {
+      "cell": "DefineOwnPropertyByValue",
+      "op": "DefineOwnPropertyByValue",
+      "refinement": null,
+      "static_files": 2263,
+      "dynamic": 2
+    },
+    {
+      "cell": "DefinePrivateField",
+      "op": "DefinePrivateField",
+      "refinement": null,
+      "static_files": 329,
+      "dynamic": 0
+    },
+    {
+      "cell": "DeleteName",
+      "op": "DeleteName",
+      "refinement": null,
+      "static_files": 97,
+      "dynamic": 0
+    },
+    {
+      "cell": "DeletePropertyByName",
+      "op": "DeletePropertyByName",
+      "refinement": null,
+      "static_files": 454,
+      "dynamic": 2
+    },
+    {
+      "cell": "DeletePropertyByValue",
+      "op": "DeletePropertyByValue",
+      "refinement": null,
+      "static_files": 339,
+      "dynamic": 0
+    },
+    {
+      "cell": "DeleteSuperThrow",
+      "op": "DeleteSuperThrow",
+      "refinement": null,
+      "static_files": 7,
+      "dynamic": 0
+    },
+    {
+      "cell": "Div",
+      "op": "Div",
+      "refinement": null,
+      "static_files": 292,
+      "dynamic": 1
+    },
+    {
+      "cell": "Eq",
+      "op": "Eq",
+      "refinement": null,
+      "static_files": 292,
+      "dynamic": 0
+    },
+    {
+      "cell": "Exception",
+      "op": "Exception",
+      "refinement": null,
+      "static_files": 12130,
+      "dynamic": 1452
+    },
+    {
+      "cell": "Generator",
+      "op": "Generator",
+      "refinement": null,
+      "static_files": 4110,
+      "dynamic": 2
+    },
+    {
+      "cell": "GeneratorYield",
+      "op": "GeneratorYield",
+      "refinement": null,
+      "static_files": 958,
+      "dynamic": 0
+    },
+    {
+      "cell": "GetArgument",
+      "op": "GetArgument",
+      "refinement": null,
+      "static_files": 16664,
+      "dynamic": 42
+    },
+    {
+      "cell": "GetAsyncIterator",
+      "op": "GetAsyncIterator",
+      "refinement": null,
+      "static_files": 1992,
+      "dynamic": 2
+    },
+    {
+      "cell": "GetFunction",
+      "op": "GetFunction",
+      "refinement": null,
+      "static_files": 32587,
+      "dynamic": 1014
+    },
+    {
+      "cell": "GetFunctionObject",
+      "op": "GetFunctionObject",
+      "refinement": null,
+      "static_files": 279,
+      "dynamic": 12
+    },
+    {
+      "cell": "GetHomeObject",
+      "op": "GetHomeObject",
+      "refinement": null,
+      "static_files": 116,
+      "dynamic": 2
+    },
+    {
+      "cell": "GetIterator",
+      "op": "GetIterator",
+      "refinement": null,
+      "static_files": 9176,
+      "dynamic": 4
+    },
+    {
+      "cell": "GetLengthProperty",
+      "op": "GetLengthProperty",
+      "refinement": null,
+      "static_files": 12215,
+      "dynamic": 1772
+    },
+    {
+      "cell": "GetLengthProperty|err-TypeError",
+      "op": "GetLengthProperty",
+      "refinement": "err-TypeError",
+      "static_files": 0,
+      "dynamic": 212
+    },
+    {
+      "cell": "GetLocator",
+      "op": "GetLocator",
+      "refinement": null,
+      "static_files": 30356,
+      "dynamic": 1304
+    },
+    {
+      "cell": "GetMethod",
+      "op": "GetMethod",
+      "refinement": null,
+      "static_files": 10479,
+      "dynamic": 4
+    },
+    {
+      "cell": "GetName",
+      "op": "GetName",
+      "refinement": null,
+      "static_files": 25950,
+      "dynamic": 23801
+    },
+    {
+      "cell": "GetNameAndLocator",
+      "op": "GetNameAndLocator",
+      "refinement": null,
+      "static_files": 15508,
+      "dynamic": 2684
+    },
+    {
+      "cell": "GetNameAndLocator|err-ReferenceError",
+      "op": "GetNameAndLocator",
+      "refinement": "err-ReferenceError",
+      "static_files": 0,
+      "dynamic": 2634
+    },
+    {
+      "cell": "GetNameGlobal",
+      "op": "GetNameGlobal",
+      "refinement": null,
+      "static_files": 66405,
+      "dynamic": 28296
+    },
+    {
+      "cell": "GetNameGlobal|err-ReferenceError",
+      "op": "GetNameGlobal",
+      "refinement": "err-ReferenceError",
+      "static_files": 0,
+      "dynamic": 11288
+    },
+    {
+      "cell": "GetNameOrUndefined",
+      "op": "GetNameOrUndefined",
+      "refinement": null,
+      "static_files": 5855,
+      "dynamic": 989
+    },
+    {
+      "cell": "GetPrivateField",
+      "op": "GetPrivateField",
+      "refinement": null,
+      "static_files": 3268,
+      "dynamic": 0
+    },
+    {
+      "cell": "GetPropertyByName",
+      "op": "GetPropertyByName",
+      "refinement": null,
+      "static_files": 55638,
+      "dynamic": 3676
+    },
+    {
+      "cell": "GetPropertyByNameWithThis",
+      "op": "GetPropertyByNameWithThis",
+      "refinement": null,
+      "static_files": 70,
+      "dynamic": 2
+    },
+    {
+      "cell": "GetPropertyByName|err-RangeError",
+      "op": "GetPropertyByName",
+      "refinement": "err-RangeError",
+      "static_files": 0,
+      "dynamic": 4
+    },
+    {
+      "cell": "GetPropertyByName|err-TypeError",
+      "op": "GetPropertyByName",
+      "refinement": "err-TypeError",
+      "static_files": 0,
+      "dynamic": 234
+    },
+    {
+      "cell": "GetPropertyByValue",
+      "op": "GetPropertyByValue",
+      "refinement": null,
+      "static_files": 5330,
+      "dynamic": 0
+    },
+    {
+      "cell": "GetPropertyByValuePush",
+      "op": "GetPropertyByValuePush",
+      "refinement": null,
+      "static_files": 103,
+      "dynamic": 0
+    },
+    {
+      "cell": "GetPrototype",
+      "op": "GetPrototype",
+      "refinement": null,
+      "static_files": 279,
+      "dynamic": 12
+    },
+    {
+      "cell": "GreaterThan",
+      "op": "GreaterThan",
+      "refinement": null,
+      "static_files": 6262,
+      "dynamic": 711
+    },
+    {
+      "cell": "GreaterThanOrEq",
+      "op": "GreaterThanOrEq",
+      "refinement": null,
+      "static_files": 151,
+      "dynamic": 0
+    },
+    {
+      "cell": "ImportCall",
+      "op": "ImportCall",
+      "refinement": null,
+      "static_files": 618,
+      "dynamic": 0
+    },
+    {
+      "cell": "In",
+      "op": "In",
+      "refinement": null,
+      "static_files": 350,
+      "dynamic": 0
+    },
+    {
+      "cell": "InPrivate",
+      "op": "InPrivate",
+      "refinement": null,
+      "static_files": 11,
+      "dynamic": 0
+    },
+    {
+      "cell": "Inc",
+      "op": "Inc",
+      "refinement": null,
+      "static_files": 16075,
+      "dynamic": 5150
+    },
+    {
+      "cell": "IncrementLoopIteration",
+      "op": "IncrementLoopIteration",
+      "refinement": null,
+      "static_files": 17845,
+      "dynamic": 6548
+    },
+    {
+      "cell": "InstanceOf",
+      "op": "InstanceOf",
+      "refinement": null,
+      "static_files": 1435,
+      "dynamic": 0
+    },
+    {
+      "cell": "IsObject",
+      "op": "IsObject",
+      "refinement": null,
+      "static_files": 10588,
+      "dynamic": 0
+    },
+    {
+      "cell": "IteratorDone",
+      "op": "IteratorDone",
+      "refinement": null,
+      "static_files": 10479,
+      "dynamic": 24
+    },
+    {
+      "cell": "IteratorNext",
+      "op": "IteratorNext",
+      "refinement": null,
+      "static_files": 9450,
+      "dynamic": 16
+    },
+    {
+      "cell": "IteratorPop",
+      "op": "IteratorPop",
+      "refinement": null,
+      "static_files": 10479,
+      "dynamic": 8
+    },
+    {
+      "cell": "IteratorPush",
+      "op": "IteratorPush",
+      "refinement": null,
+      "static_files": 1304,
+      "dynamic": 0
+    },
+    {
+      "cell": "IteratorResult",
+      "op": "IteratorResult",
+      "refinement": null,
+      "static_files": 1324,
+      "dynamic": 8
+    },
+    {
+      "cell": "IteratorStackEmpty",
+      "op": "IteratorStackEmpty",
+      "refinement": null,
+      "static_files": 10479,
+      "dynamic": 8
+    },
+    {
+      "cell": "IteratorUpdateResult",
+      "op": "IteratorUpdateResult",
+      "refinement": null,
+      "static_files": 2133,
+      "dynamic": 8
+    },
+    {
+      "cell": "IteratorValue",
+      "op": "IteratorValue",
+      "refinement": null,
+      "static_files": 10165,
+      "dynamic": 12
+    },
+    {
+      "cell": "Jump",
+      "op": "Jump",
+      "refinement": null,
+      "static_files": 36085,
+      "dynamic": 17499
+    },
+    {
+      "cell": "JumpIfFalse",
+      "op": "JumpIfFalse",
+      "refinement": null,
+      "static_files": 32267,
+      "dynamic": 12729
+    },
+    {
+      "cell": "JumpIfFalse|nottaken",
+      "op": "JumpIfFalse",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 6027
+    },
+    {
+      "cell": "JumpIfFalse|taken",
+      "op": "JumpIfFalse",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 6702
+    },
+    {
+      "cell": "JumpIfNotEqual",
+      "op": "JumpIfNotEqual",
+      "refinement": null,
+      "static_files": 2349,
+      "dynamic": 22
+    },
+    {
+      "cell": "JumpIfNotEqual|nottaken",
+      "op": "JumpIfNotEqual",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 4
+    },
+    {
+      "cell": "JumpIfNotEqual|taken",
+      "op": "JumpIfNotEqual",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 18
+    },
+    {
+      "cell": "JumpIfNotGreaterThan",
+      "op": "JumpIfNotGreaterThan",
+      "refinement": null,
+      "static_files": 856,
+      "dynamic": 102
+    },
+    {
+      "cell": "JumpIfNotGreaterThanOrEqual",
+      "op": "JumpIfNotGreaterThanOrEqual",
+      "refinement": null,
+      "static_files": 60,
+      "dynamic": 2
+    },
+    {
+      "cell": "JumpIfNotGreaterThanOrEqual|nottaken",
+      "op": "JumpIfNotGreaterThanOrEqual",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 1
+    },
+    {
+      "cell": "JumpIfNotGreaterThanOrEqual|taken",
+      "op": "JumpIfNotGreaterThanOrEqual",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 1
+    },
+    {
+      "cell": "JumpIfNotGreaterThan|nottaken",
+      "op": "JumpIfNotGreaterThan",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 18
+    },
+    {
+      "cell": "JumpIfNotGreaterThan|taken",
+      "op": "JumpIfNotGreaterThan",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 84
+    },
+    {
+      "cell": "JumpIfNotLessThan",
+      "op": "JumpIfNotLessThan",
+      "refinement": null,
+      "static_files": 8090,
+      "dynamic": 5968
+    },
+    {
+      "cell": "JumpIfNotLessThanOrEqual",
+      "op": "JumpIfNotLessThanOrEqual",
+      "refinement": null,
+      "static_files": 205,
+      "dynamic": 2
+    },
+    {
+      "cell": "JumpIfNotLessThanOrEqual|nottaken",
+      "op": "JumpIfNotLessThanOrEqual",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 1
+    },
+    {
+      "cell": "JumpIfNotLessThanOrEqual|taken",
+      "op": "JumpIfNotLessThanOrEqual",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 1
+    },
+    {
+      "cell": "JumpIfNotLessThan|nottaken",
+      "op": "JumpIfNotLessThan",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 3679
+    },
+    {
+      "cell": "JumpIfNotLessThan|taken",
+      "op": "JumpIfNotLessThan",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 2289
+    },
+    {
+      "cell": "JumpIfNotUndefined",
+      "op": "JumpIfNotUndefined",
+      "refinement": null,
+      "static_files": 7219,
+      "dynamic": 8
+    },
+    {
+      "cell": "JumpIfNotUndefined|nottaken",
+      "op": "JumpIfNotUndefined",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 4
+    },
+    {
+      "cell": "JumpIfNotUndefined|taken",
+      "op": "JumpIfNotUndefined",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 4
+    },
+    {
+      "cell": "JumpIfNullOrUndefined",
+      "op": "JumpIfNullOrUndefined",
+      "refinement": null,
+      "static_files": 10530,
+      "dynamic": 12
+    },
+    {
+      "cell": "JumpIfNullOrUndefined|nottaken",
+      "op": "JumpIfNullOrUndefined",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 6
+    },
+    {
+      "cell": "JumpIfNullOrUndefined|taken",
+      "op": "JumpIfNullOrUndefined",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 6
+    },
+    {
+      "cell": "JumpIfTrue",
+      "op": "JumpIfTrue",
+      "refinement": null,
+      "static_files": 10506,
+      "dynamic": 28
+    },
+    {
+      "cell": "JumpIfTrue|nottaken",
+      "op": "JumpIfTrue",
+      "refinement": "nottaken",
+      "static_files": 0,
+      "dynamic": 20
+    },
+    {
+      "cell": "JumpIfTrue|taken",
+      "op": "JumpIfTrue",
+      "refinement": "taken",
+      "static_files": 0,
+      "dynamic": 8
+    },
+    {
+      "cell": "JumpTable",
+      "op": "JumpTable",
+      "refinement": null,
+      "static_files": 3716,
+      "dynamic": 40
+    },
+    {
+      "cell": "LessThan",
+      "op": "LessThan",
+      "refinement": null,
+      "static_files": 6057,
+      "dynamic": 706
+    },
+    {
+      "cell": "LessThanOrEq",
+      "op": "LessThanOrEq",
+      "refinement": null,
+      "static_files": 70,
+      "dynamic": 0
+    },
+    {
+      "cell": "LogicalAnd",
+      "op": "LogicalAnd",
+      "refinement": null,
+      "static_files": 12638,
+      "dynamic": 4709
+    },
+    {
+      "cell": "LogicalNot",
+      "op": "LogicalNot",
+      "refinement": null,
+      "static_files": 11534,
+      "dynamic": 2218
+    },
+    {
+      "cell": "LogicalOr",
+      "op": "LogicalOr",
+      "refinement": null,
+      "static_files": 12368,
+      "dynamic": 4608
+    },
+    {
+      "cell": "MaybeException",
+      "op": "MaybeException",
+      "refinement": null,
+      "static_files": 11542,
+      "dynamic": 30
+    },
+    {
+      "cell": "Mod",
+      "op": "Mod",
+      "refinement": null,
+      "static_files": 147,
+      "dynamic": 0
+    },
+    {
+      "cell": "Move",
+      "op": "Move",
+      "refinement": null,
+      "static_files": 41618,
+      "dynamic": 4292
+    },
+    {
+      "cell": "Mul",
+      "op": "Mul",
+      "refinement": null,
+      "static_files": 12071,
+      "dynamic": 2807
+    },
+    {
+      "cell": "Neg",
+      "op": "Neg",
+      "refinement": null,
+      "static_files": 14678,
+      "dynamic": 4713
+    },
+    {
+      "cell": "New",
+      "op": "New",
+      "refinement": null,
+      "static_files": 22820,
+      "dynamic": 54
+    },
+    {
+      "cell": "NewSpread",
+      "op": "NewSpread",
+      "refinement": null,
+      "static_files": 115,
+      "dynamic": 0
+    },
+    {
+      "cell": "NewTarget",
+      "op": "NewTarget",
+      "refinement": null,
+      "static_files": 61,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-0",
+      "op": "New",
+      "refinement": "argv-0",
+      "static_files": 9896,
+      "dynamic": 2
+    },
+    {
+      "cell": "New|argv-1",
+      "op": "New",
+      "refinement": "argv-1",
+      "static_files": 10728,
+      "dynamic": 42
+    },
+    {
+      "cell": "New|argv-2",
+      "op": "New",
+      "refinement": "argv-2",
+      "static_files": 3747,
+      "dynamic": 10
+    },
+    {
+      "cell": "New|argv-3",
+      "op": "New",
+      "refinement": "argv-3",
+      "static_files": 1486,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-4",
+      "op": "New",
+      "refinement": "argv-4",
+      "static_files": 477,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-5",
+      "op": "New",
+      "refinement": "argv-5",
+      "static_files": 200,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-6",
+      "op": "New",
+      "refinement": "argv-6",
+      "static_files": 344,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-7",
+      "op": "New",
+      "refinement": "argv-7",
+      "static_files": 106,
+      "dynamic": 0
+    },
+    {
+      "cell": "New|argv-many",
+      "op": "New",
+      "refinement": "argv-many",
+      "static_files": 644,
+      "dynamic": 0
+    },
+    {
+      "cell": "NotEq",
+      "op": "NotEq",
+      "refinement": null,
+      "static_files": 101,
+      "dynamic": 0
+    },
+    {
+      "cell": "Pop",
+      "op": "Pop",
+      "refinement": null,
+      "static_files": 42554,
+      "dynamic": 900
+    },
+    {
+      "cell": "PopEnvironment",
+      "op": "PopEnvironment",
+      "refinement": null,
+      "static_files": 5998,
+      "dynamic": 20
+    },
+    {
+      "cell": "PopIntoRegister",
+      "op": "PopIntoRegister",
+      "refinement": null,
+      "static_files": 63030,
+      "dynamic": 3060
+    },
+    {
+      "cell": "PopPrivateEnvironment",
+      "op": "PopPrivateEnvironment",
+      "refinement": null,
+      "static_files": 8171,
+      "dynamic": 12
+    },
+    {
+      "cell": "Pos",
+      "op": "Pos",
+      "refinement": null,
+      "static_files": 305,
+      "dynamic": 0
+    },
+    {
+      "cell": "Pow",
+      "op": "Pow",
+      "refinement": null,
+      "static_files": 130,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushClassField",
+      "op": "PushClassField",
+      "refinement": null,
+      "static_files": 756,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushClassFieldPrivate",
+      "op": "PushClassFieldPrivate",
+      "refinement": null,
+      "static_files": 718,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushClassPrivateGetter",
+      "op": "PushClassPrivateGetter",
+      "refinement": null,
+      "static_files": 209,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushClassPrivateMethod",
+      "op": "PushClassPrivateMethod",
+      "refinement": null,
+      "static_files": 1106,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushClassPrivateSetter",
+      "op": "PushClassPrivateSetter",
+      "refinement": null,
+      "static_files": 152,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushElisionToArray",
+      "op": "PushElisionToArray",
+      "refinement": null,
+      "static_files": 327,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushFromRegister",
+      "op": "PushFromRegister",
+      "refinement": null,
+      "static_files": 63500,
+      "dynamic": 29516
+    },
+    {
+      "cell": "PushIteratorToArray",
+      "op": "PushIteratorToArray",
+      "refinement": null,
+      "static_files": 529,
+      "dynamic": 0
+    },
+    {
+      "cell": "PushObjectEnvironment",
+      "op": "PushObjectEnvironment",
+      "refinement": null,
+      "static_files": 334,
+      "dynamic": 4
+    },
+    {
+      "cell": "PushPrivateEnvironment",
+      "op": "PushPrivateEnvironment",
+      "refinement": null,
+      "static_files": 8171,
+      "dynamic": 12
+    },
+    {
+      "cell": "PushScope",
+      "op": "PushScope",
+      "refinement": null,
+      "static_files": 6305,
+      "dynamic": 20
+    },
+    {
+      "cell": "PushValueToArray",
+      "op": "PushValueToArray",
+      "refinement": null,
+      "static_files": 26876,
+      "dynamic": 8486
+    },
+    {
+      "cell": "PutLexicalValue",
+      "op": "PutLexicalValue",
+      "refinement": null,
+      "static_files": 30455,
+      "dynamic": 60060
+    },
+    {
+      "cell": "ReThrow",
+      "op": "ReThrow",
+      "refinement": null,
+      "static_files": 12583,
+      "dynamic": 156
+    },
+    {
+      "cell": "RestParameterInit",
+      "op": "RestParameterInit",
+      "refinement": null,
+      "static_files": 121,
+      "dynamic": 0
+    },
+    {
+      "cell": "Return",
+      "op": "Return",
+      "refinement": null,
+      "static_files": 68518,
+      "dynamic": 5080
+    },
+    {
+      "cell": "SetAccumulator",
+      "op": "SetAccumulator",
+      "refinement": null,
+      "static_files": 64611,
+      "dynamic": 5649
+    },
+    {
+      "cell": "SetClassPrototype",
+      "op": "SetClassPrototype",
+      "refinement": null,
+      "static_files": 8171,
+      "dynamic": 12
+    },
+    {
+      "cell": "SetFunctionName",
+      "op": "SetFunctionName",
+      "refinement": null,
+      "static_files": 1249,
+      "dynamic": 2
+    },
+    {
+      "cell": "SetHomeObject",
+      "op": "SetHomeObject",
+      "refinement": null,
+      "static_files": 4026,
+      "dynamic": 8
+    },
+    {
+      "cell": "SetName",
+      "op": "SetName",
+      "refinement": null,
+      "static_files": 12276,
+      "dynamic": 6154
+    },
+    {
+      "cell": "SetNameByLocator",
+      "op": "SetNameByLocator",
+      "refinement": null,
+      "static_files": 37401,
+      "dynamic": 680
+    },
+    {
+      "cell": "SetNameByLocator|err-ReferenceError",
+      "op": "SetNameByLocator",
+      "refinement": "err-ReferenceError",
+      "static_files": 0,
+      "dynamic": 4
+    },
+    {
+      "cell": "SetPrivateField",
+      "op": "SetPrivateField",
+      "refinement": null,
+      "static_files": 720,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPrivateGetter",
+      "op": "SetPrivateGetter",
+      "refinement": null,
+      "static_files": 32,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPrivateMethod",
+      "op": "SetPrivateMethod",
+      "refinement": null,
+      "static_files": 1296,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPrivateSetter",
+      "op": "SetPrivateSetter",
+      "refinement": null,
+      "static_files": 32,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertyByName",
+      "op": "SetPropertyByName",
+      "refinement": null,
+      "static_files": 4056,
+      "dynamic": 28
+    },
+    {
+      "cell": "SetPropertyByNameWithThis",
+      "op": "SetPropertyByNameWithThis",
+      "refinement": null,
+      "static_files": 17,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertyByValue",
+      "op": "SetPropertyByValue",
+      "refinement": null,
+      "static_files": 2667,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertyGetterByName",
+      "op": "SetPropertyGetterByName",
+      "refinement": null,
+      "static_files": 755,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertyGetterByValue",
+      "op": "SetPropertyGetterByValue",
+      "refinement": null,
+      "static_files": 604,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertySetterByName",
+      "op": "SetPropertySetterByName",
+      "refinement": null,
+      "static_files": 126,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPropertySetterByValue",
+      "op": "SetPropertySetterByValue",
+      "refinement": null,
+      "static_files": 43,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetPrototype",
+      "op": "SetPrototype",
+      "refinement": null,
+      "static_files": 62,
+      "dynamic": 0
+    },
+    {
+      "cell": "SetRegisterFromAccumulator",
+      "op": "SetRegisterFromAccumulator",
+      "refinement": null,
+      "static_files": 14925,
+      "dynamic": 1598
+    },
+    {
+      "cell": "ShiftLeft",
+      "op": "ShiftLeft",
+      "refinement": null,
+      "static_files": 93,
+      "dynamic": 0
+    },
+    {
+      "cell": "ShiftRight",
+      "op": "ShiftRight",
+      "refinement": null,
+      "static_files": 81,
+      "dynamic": 0
+    },
+    {
+      "cell": "StoreClassPrototype",
+      "op": "StoreClassPrototype",
+      "refinement": null,
+      "static_files": 887,
+      "dynamic": 4
+    },
+    {
+      "cell": "StoreDouble",
+      "op": "StoreDouble",
+      "refinement": null,
+      "static_files": 6129,
+      "dynamic": 1931
+    },
+    {
+      "cell": "StoreEmptyObject",
+      "op": "StoreEmptyObject",
+      "refinement": null,
+      "static_files": 25415,
+      "dynamic": 60
+    },
+    {
+      "cell": "StoreFalse",
+      "op": "StoreFalse",
+      "refinement": null,
+      "static_files": 35086,
+      "dynamic": 7883
+    },
+    {
+      "cell": "StoreFloat",
+      "op": "StoreFloat",
+      "refinement": null,
+      "static_files": 8817,
+      "dynamic": 3952
+    },
+    {
+      "cell": "StoreInt16",
+      "op": "StoreInt16",
+      "refinement": null,
+      "static_files": 18091,
+      "dynamic": 8051
+    },
+    {
+      "cell": "StoreInt32",
+      "op": "StoreInt32",
+      "refinement": null,
+      "static_files": 14613,
+      "dynamic": 9388
+    },
+    {
+      "cell": "StoreInt8",
+      "op": "StoreInt8",
+      "refinement": null,
+      "static_files": 39379,
+      "dynamic": 25512
+    },
+    {
+      "cell": "StoreLiteral",
+      "op": "StoreLiteral",
+      "refinement": null,
+      "static_files": 56436,
+      "dynamic": 9634
+    },
+    {
+      "cell": "StoreLiteral|k-bigint",
+      "op": "StoreLiteral",
+      "refinement": "k-bigint",
+      "static_files": 2191,
+      "dynamic": 0
+    },
+    {
+      "cell": "StoreLiteral|k-str",
+      "op": "StoreLiteral",
+      "refinement": "k-str",
+      "static_files": 56351,
+      "dynamic": 9634
+    },
+    {
+      "cell": "StoreNan",
+      "op": "StoreNan",
+      "refinement": null,
+      "static_files": 1483,
+      "dynamic": 356
+    },
+    {
+      "cell": "StoreNegativeInfinity",
+      "op": "StoreNegativeInfinity",
+      "refinement": null,
+      "static_files": 127,
+      "dynamic": 28
+    },
+    {
+      "cell": "StoreNewArray",
+      "op": "StoreNewArray",
+      "refinement": null,
+      "static_files": 29641,
+      "dynamic": 7424
+    },
+    {
+      "cell": "StoreNull",
+      "op": "StoreNull",
+      "refinement": null,
+      "static_files": 18273,
+      "dynamic": 8912
+    },
+    {
+      "cell": "StoreOne",
+      "op": "StoreOne",
+      "refinement": null,
+      "static_files": 27461,
+      "dynamic": 1884
+    },
+    {
+      "cell": "StorePositiveInfinity",
+      "op": "StorePositiveInfinity",
+      "refinement": null,
+      "static_files": 4628,
+      "dynamic": 1912
+    },
+    {
+      "cell": "StoreRegexp",
+      "op": "StoreRegexp",
+      "refinement": null,
+      "static_files": 1626,
+      "dynamic": 10
+    },
+    {
+      "cell": "StoreTrue",
+      "op": "StoreTrue",
+      "refinement": null,
+      "static_files": 32544,
+      "dynamic": 6641
+    },
+    {
+      "cell": "StoreUndefined",
+      "op": "StoreUndefined",
+      "refinement": null,
+      "static_files": 23198,
+      "dynamic": 2661
+    },
+    {
+      "cell": "StoreZero",
+      "op": "StoreZero",
+      "refinement": null,
+      "static_files": 38871,
+      "dynamic": 19859
+    },
+    {
+      "cell": "StrictEq",
+      "op": "StrictEq",
+      "refinement": null,
+      "static_files": 8758,
+      "dynamic": 867
+    },
+    {
+      "cell": "StrictNotEq",
+      "op": "StrictNotEq",
+      "refinement": null,
+      "static_files": 9492,
+      "dynamic": 815
+    },
+    {
+      "cell": "Sub",
+      "op": "Sub",
+      "refinement": null,
+      "static_files": 11704,
+      "dynamic": 3013
+    },
+    {
+      "cell": "SuperCall",
+      "op": "SuperCall",
+      "refinement": null,
+      "static_files": 152,
+      "dynamic": 10
+    },
+    {
+      "cell": "SuperCallDerived",
+      "op": "SuperCallDerived",
+      "refinement": null,
+      "static_files": 676,
+      "dynamic": 2
+    },
+    {
+      "cell": "SuperCallSpread",
+      "op": "SuperCallSpread",
+      "refinement": null,
+      "static_files": 30,
+      "dynamic": 0
+    },
+    {
+      "cell": "SuperCall|argv-0",
+      "op": "SuperCall",
+      "refinement": "argv-0",
+      "static_files": 86,
+      "dynamic": 0
+    },
+    {
+      "cell": "SuperCall|argv-1",
+      "op": "SuperCall",
+      "refinement": "argv-1",
+      "static_files": 47,
+      "dynamic": 0
+    },
+    {
+      "cell": "SuperCall|argv-2",
+      "op": "SuperCall",
+      "refinement": "argv-2",
+      "static_files": 19,
+      "dynamic": 0
+    },
+    {
+      "cell": "SuperCall|argv-3",
+      "op": "SuperCall",
+      "refinement": "argv-3",
+      "static_files": 4,
+      "dynamic": 0
+    },
+    {
+      "cell": "SuperCall|argv-4",
+      "op": "SuperCall",
+      "refinement": "argv-4",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "SuperCall|argv-5",
+      "op": "SuperCall",
+      "refinement": "argv-5",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "SuperCall|argv-6",
+      "op": "SuperCall",
+      "refinement": "argv-6",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "SuperCall|argv-7",
+      "op": "SuperCall",
+      "refinement": "argv-7",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "SuperCall|argv-many",
+      "op": "SuperCall",
+      "refinement": "argv-many",
+      "static_files": 2,
+      "dynamic": 2
+    },
+    {
+      "cell": "TemplateCreate",
+      "op": "TemplateCreate",
+      "refinement": null,
+      "static_files": 62,
+      "dynamic": 0
+    },
+    {
+      "cell": "TemplateLookup",
+      "op": "TemplateLookup",
+      "refinement": null,
+      "static_files": 62,
+      "dynamic": 0
+    },
+    {
+      "cell": "This",
+      "op": "This",
+      "refinement": null,
+      "static_files": 5344,
+      "dynamic": 6
+    },
+    {
+      "cell": "ThisForObjectEnvironmentName",
+      "op": "ThisForObjectEnvironmentName",
+      "refinement": null,
+      "static_files": 34,
+      "dynamic": 4
+    },
+    {
+      "cell": "Throw",
+      "op": "Throw",
+      "refinement": null,
+      "static_files": 23546,
+      "dynamic": 1674
+    },
+    {
+      "cell": "ThrowMutateImmutable",
+      "op": "ThrowMutateImmutable",
+      "refinement": null,
+      "static_files": 28,
+      "dynamic": 0
+    },
+    {
+      "cell": "ThrowNewReferenceError",
+      "op": "ThrowNewReferenceError",
+      "refinement": null,
+      "static_files": 84,
+      "dynamic": 0
+    },
+    {
+      "cell": "ThrowNewTypeError",
+      "op": "ThrowNewTypeError",
+      "refinement": null,
+      "static_files": 10479,
+      "dynamic": 0
+    },
+    {
+      "cell": "ToInt32",
+      "op": "ToInt32",
+      "refinement": null,
+      "static_files": 126,
+      "dynamic": 13
+    },
+    {
+      "cell": "ToPropertyKey",
+      "op": "ToPropertyKey",
+      "refinement": null,
+      "static_files": 2639,
+      "dynamic": 2
+    },
+    {
+      "cell": "TypeOf",
+      "op": "TypeOf",
+      "refinement": null,
+      "static_files": 12249,
+      "dynamic": 2568
+    },
+    {
+      "cell": "UnsignedShiftRight",
+      "op": "UnsignedShiftRight",
+      "refinement": null,
+      "static_files": 88,
+      "dynamic": 0
+    },
+    {
+      "cell": "ValueNotNullOrUndefined",
+      "op": "ValueNotNullOrUndefined",
+      "refinement": null,
+      "static_files": 10551,
+      "dynamic": 12
+    },
+    {
+      "cell": "ValueNotNullOrUndefined|err-TypeError",
+      "op": "ValueNotNullOrUndefined",
+      "refinement": "err-TypeError",
+      "static_files": 0,
+      "dynamic": 6
+    },
+    {
+      "cell": "ic|to-mega",
+      "op": "ic",
+      "refinement": "to-mega",
+      "static_files": 0,
+      "dynamic": 2
+    },
+    {
+      "cell": "ic|to-mono",
+      "op": "ic",
+      "refinement": "to-mono",
+      "static_files": 0,
+      "dynamic": 18586
+    },
+    {
+      "cell": "ic|to-poly2",
+      "op": "ic",
+      "refinement": "to-poly2",
+      "static_files": 0,
+      "dynamic": 2
+    },
+    {
+      "cell": "ic|to-poly3",
+      "op": "ic",
+      "refinement": "to-poly3",
+      "static_files": 0,
+      "dynamic": 2
+    },
+    {
+      "cell": "ic|to-poly4",
+      "op": "ic",
+      "refinement": "to-poly4",
+      "static_files": 0,
+      "dynamic": 2
+    }
+  ],
+  "malformed": []
+}

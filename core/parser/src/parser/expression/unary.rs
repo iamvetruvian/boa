@@ -12,6 +12,7 @@ use crate::{
     lexer::{Error as LexError, TokenKind},
     parser::{
         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{
             FormalParameterListOrExpression, await_expr::AwaitExpression, update::UpdateExpression,
         },
@@ -64,6 +65,7 @@ where
     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
         let tok = cursor.peek(0, interner).or_abrupt()?;
         let token_start = tok.span().start();
+        check_stack(token_start)?;
         match tok.kind() {
             TokenKind::Keyword((Keyword::Delete | Keyword::Void | Keyword::TypeOf, true)) => Err(
                 Error::general("Keyword must not contain escaped characters", token_start),

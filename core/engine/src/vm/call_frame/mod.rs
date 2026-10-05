@@ -47,6 +47,20 @@ pub struct CallFrameLocation {
     pub position: Option<Position>,
 }
 
+/// A binding locator captured when its reference was created, plus whether
+/// the binding existed at capture time.
+///
+/// Per `PutValue`, a strict assignment to a reference that was unresolvable
+/// at creation throws a `ReferenceError` even if the right-hand side
+/// created the binding in the meantime
+/// (`undeclared = (this.undeclared = 5)`), so the capture-time state must
+/// travel with the locator instead of being re-derived at set time.
+#[derive(Debug, Clone)]
+pub(crate) struct CapturedBinding {
+    pub(crate) locator: BindingLocator,
+    pub(crate) initialized: bool,
+}
+
 /// A `CallFrame` holds the state of a function call.
 #[derive(Clone, Debug, Finalize, Trace)]
 pub struct CallFrame {
@@ -65,9 +79,9 @@ pub struct CallFrame {
     pub(crate) iterators: ThinVec<IteratorRecord>,
 
     // The stack of bindings being updated.
-    // SAFETY: Nothing in `BindingLocator` requires tracing, so this is safe.
+    // SAFETY: Nothing in `CapturedBinding` requires tracing, so this is safe.
     #[unsafe_ignore_trace]
-    pub(crate) binding_stack: ThinVec<BindingLocator>,
+    pub(crate) binding_stack: ThinVec<CapturedBinding>,
 
     /// How many iterations a loop has done.
     pub(crate) loop_iteration_count: u64,

@@ -1,0 +1,48 @@
+# Per-target coverage baselines for the P4.6 ratchet (covered regions over
+# the cmin-minimized committed seed bank; functions/lines recorded for context).
+# Regenerate with: ./pipeline/coverage-gate.py --update-baseline
+# Policy: the gate fails on any REPRODUCIBLE decrease (a first below-baseline
+# reading re-measures once; coverage wobbles a few regions run to run).
+# Ratchet UP when new seeds cover
+# more (celebrate). Ratchet DOWN only when code removal legitimately drops
+# totals, with the reason in the commit message. Never edit by hand otherwise.
+
+[parser-idempotency]
+regions = 1850
+functions = 334
+lines = 1935
+
+[vm-implied]
+regions = 8324
+functions = 1184
+lines = 9310
+
+[bytecompiler-implied]
+regions = 8107
+functions = 1143
+lines = 9093
+
+[source-bytes]
+regions = 8121
+functions = 1150
+lines = 8930
+
+[module-specifier]
+regions = 5799
+functions = 718
+lines = 6641
+
+[url-parse]
+regions = 14970
+functions = 2219
+lines = 16716
+
+[fetch-response]
+regions = 15225
+functions = 2259
+lines = 16983
+
+[cli-exec]
+regions = 24546
+functions = 3320
+lines = 27173

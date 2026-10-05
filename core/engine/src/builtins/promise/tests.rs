@@ -98,3 +98,23 @@ fn promise_race_resolves_first() {
         TestAction::assert_eq("val", 10),
     ]);
 }
+
+// https://tc39.es/ecma262/#sec-promise.try
+#[test]
+fn promise_try_passes_through_same_constructor_promises() {
+    run_test_actions([
+        TestAction::run(indoc! {r#"
+            var sentinel = Promise.resolve(42);
+            var direct = Promise.try(() => sentinel);
+            var same = direct === sentinel;
+            var plain = null;
+            Promise.try(() => 7).then(v => { plain = v; });
+            var rejected = null;
+            Promise.try(() => { throw 9; }).catch(e => { rejected = e; });
+        "#}),
+        TestAction::assert("same"),
+        TestAction::inspect_context(|ctx| ctx.run_jobs().unwrap()),
+        TestAction::assert_eq("plain", 7),
+        TestAction::assert_eq("rejected", 9),
+    ]);
+}

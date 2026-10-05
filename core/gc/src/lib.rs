@@ -28,6 +28,7 @@ use pointers::{NonTraceable, RawWeakMap};
 use std::{
     cell::{Cell, RefCell},
     mem,
+    num::NonZeroU64,
     ptr::NonNull,
 };
 
@@ -56,6 +57,9 @@ struct GcConfig {
     threshold: usize,
     /// The percentage of used space at which the garbage collector will trigger a collection.
     used_space_percentage: usize,
+    /// Collect every this many allocations when set (GC-stress mode),
+    /// bypassing the threshold and adaptive growth entirely.
+    stress_every: Option<NonZeroU64>,
 }
 
 // Setting the defaults to an arbitrary value currently.
@@ -67,6 +71,7 @@ impl Default for GcConfig {
             // Start at 1MB, the nursary size for V8 is ~1-8MB and SM can be up to 16MB
             threshold: 1_048_576,
             used_space_percentage: 70,
+            stress_every: None,
         }
     }
 }
@@ -75,6 +80,10 @@ impl Default for GcConfig {
 struct GcRuntimeData {
     collections: usize,
     bytes_allocated: usize,
+    /// Allocations since the last stress collection (stress mode only).
+    stress_allocs: u64,
+    /// Cumulative allocations served (all modes; cost-gating introspection).
+    total_allocs: u64,
 }
 
 #[derive(Debug)]
@@ -186,6 +195,15 @@ impl Allocator {
     }
 
     fn manage_state(gc: &mut BoaGc) {
+        gc.runtime.total_allocs += 1;
+        if let Some(every) = gc.config.stress_every {
+            gc.runtime.stress_allocs += 1;
+            if gc.runtime.stress_allocs >= every.get() {
+                gc.runtime.stress_allocs = 0;
+                Collector::collect(gc);
+            }
+            return;
+        }
         if gc.runtime.bytes_allocated > gc.config.threshold {
             Collector::collect(gc);
 
@@ -541,6 +559,76 @@ pub fn force_collect() {
     });
 }
 
+/// Enables or disables GC-stress mode on the current thread.
+///
+/// When set to `Some(n)`, the collector runs every `n` allocations instead of
+/// at the byte threshold, and adaptive threshold growth is bypassed: the heap
+/// stays tiny and collections fire at hostile points (inside calls, property
+/// access, exception unwind). `None` restores the default threshold mode.
+///
+/// The setting is thread-local, like the collector itself: each thread (each
+/// rayon worker, each test thread) needs its own call. Prefer [`StressGuard`]
+/// so the previous setting is restored even on panic.
+pub fn gc_set_stress(every: Option<NonZeroU64>) {
+    BOA_GC.with(|current| {
+        let mut gc = current.borrow_mut();
+        gc.config.stress_every = every;
+        gc.runtime.stress_allocs = 0;
+    });
+}
+
+/// Returns the current thread's GC-stress cadence, if stress mode is enabled.
+#[must_use]
+pub fn gc_stress_every() -> Option<NonZeroU64> {
+    BOA_GC.with(|current| current.borrow().config.stress_every)
+}
+
+/// Returns the number of collections run so far on the current thread.
+///
+/// Introspection for stress-mode calibration and tests: a stressed workload
+/// must show strictly more collections than the same workload unstressed.
+#[must_use]
+pub fn gc_collections() -> usize {
+    BOA_GC.with(|current| current.borrow().runtime.collections)
+}
+
+/// Returns the cumulative allocations served on the current thread.
+///
+/// Introspection for cost-gating stress differentials: stressed collection
+/// cost grows superlinearly with allocation churn, so callers skip the
+/// stressed leg when the normal leg's allocation delta exceeds their budget.
+/// Monotonic within a thread; meaningless across threads.
+#[must_use]
+pub fn gc_total_allocs() -> u64 {
+    BOA_GC.with(|current| current.borrow().runtime.total_allocs)
+}
+
+/// RAII guard enabling GC stress for a scope.
+///
+/// Sets collect-every-`every`-allocations on creation and restores the
+/// previous setting on drop, so nested uses and panics cannot leak stress
+/// mode onto later work on the same thread.
+#[derive(Debug)]
+pub struct StressGuard {
+    prev: Option<NonZeroU64>,
+}
+
+impl StressGuard {
+    /// Enables stress mode on the current thread until the guard drops.
+    #[must_use]
+    pub fn stress(every: NonZeroU64) -> Self {
+        let prev = gc_stress_every();
+        gc_set_stress(Some(every));
+        Self { prev }
+    }
+}
+
+impl Drop for StressGuard {
+    fn drop(&mut self) {
+        gc_set_stress(self.prev);
+    }
+}
+
 #[cfg(test)]
 mod test;
 
@@ -554,3 +642,15 @@ pub fn has_weak_maps() -> bool {
         !gc.weak_maps.is_empty()
     })
 }
+
+// Kani proofs for this crate live beside the header protocol
+// (`internals::gc_header::kani_headers`, P6.4b).
+//
+// A full-collect graph harness was attempted and narrowed away (never
+// silently): Kani 0.68's compiler hits an internal error
+// (`kani-compiler/src/intrinsics.rs:243`, `IntTy::I32` assertion) on any
+// `BOA_GC.with(...)` thread-local access -- proven by a 3-line probe
+// harness that ICEs identically. Full-collect behavior is instead covered
+// by tested argument: the `mod miri` suites (`test/allocation`,
+// `test/cell`, `test/weak`, `test/stress`) exercise real collect cycles
+// and are green under Miri (6.2) and ASan (6.3).

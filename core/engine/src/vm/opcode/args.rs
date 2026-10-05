@@ -65,6 +65,24 @@ unsafe fn read_unchecked<T: Readable>(bytes: &[u8], offset: usize) -> T {
     unsafe { bytes.as_ptr().add(offset).cast::<T>().read_unaligned() }
 }
 
+/// Read a value of type T from the byte slice at the given offset, returning
+/// `None` instead of panicking when the buffer is short.
+///
+/// This is the total sibling of [`read`], used only by the P5.1 bytecode
+/// verifier (`crate::vm::verify`), which must return errors — never panic —
+/// on malformed input. The hot decode path keeps using [`read`].
+pub(super) fn try_read<T: Readable>(bytes: &[u8], offset: usize) -> Option<(T, usize)> {
+    let new_offset = offset.checked_add(size_of::<T>())?;
+    if bytes.len() < new_offset {
+        return None;
+    }
+
+    // Safety: The bounds check above ensures that the slice is large enough to read T.
+    let result = unsafe { read_unchecked(bytes, offset) };
+
+    Some((result, new_offset))
+}
+
 pub(crate) trait Argument: Sized + std::fmt::Debug {
     /// Encode the argument into a byte slice
     fn encode(self, bytes: &mut Vec<u8>);
@@ -72,6 +90,12 @@ pub(crate) trait Argument: Sized + std::fmt::Debug {
     /// Decode the argument from a byte slice
     /// Returns the decoded argument and the new position after reading
     fn decode(bytes: &[u8], pos: usize) -> (Self, usize);
+
+    /// Fallible decode for the bytecode verifier: `None` when the buffer is
+    /// short. Every implementation must mirror [`decode`](Self::decode) exactly
+    /// apart from error handling, and must never allocate from an untrusted
+    /// length prefix (see the `ThinVec` impl).
+    fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)>;
 }
 
 #[inline(always)]
@@ -136,6 +160,20 @@ impl<T: Argument> Argument for ThinVec<T> {
         }
         (result, pos)
     }
+
+    fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+        let (len, mut pos) = try_read::<u32>(bytes, pos)?;
+        // NOTE: never `with_capacity` on the untrusted length prefix — a
+        // hostile `u32::MAX` would abort on allocation. Pushing one element
+        // at a time keeps memory proportional to the actual input.
+        let mut result = ThinVec::new();
+        for _ in 0..len {
+            let (arg, new_pos) = T::decode_checked(bytes, pos)?;
+            result.push(arg);
+            pos = new_pos;
+        }
+        Some((result, pos))
+    }
 }
 
 impl Argument for () {
@@ -143,6 +181,10 @@ impl Argument for () {
 
     fn decode(_: &[u8], pos: usize) -> (Self, usize) {
         ((), pos)
+    }
+
+    fn decode_checked(_: &[u8], pos: usize) -> Option<(Self, usize)> {
+        Some(((), pos))
     }
 }
 
@@ -155,6 +197,11 @@ impl Argument for IndexOperand {
         let (arg1, pos) = read::<u32>(bytes, pos);
         (arg1.into(), pos)
     }
+
+    fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+        let (arg1, pos) = try_read::<u32>(bytes, pos)?;
+        Some((arg1.into(), pos))
+    }
 }
 
 impl Argument for RegisterOperand {
@@ -165,6 +212,11 @@ impl Argument for RegisterOperand {
     fn decode(bytes: &[u8], pos: usize) -> (Self, usize) {
         let (arg1, pos) = read::<u32>(bytes, pos);
         (Self::new(arg1), pos)
+    }
+
+    fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+        let (arg1, pos) = try_read::<u32>(bytes, pos)?;
+        Some((Self::new(arg1), pos))
     }
 }
 
@@ -178,6 +230,11 @@ impl Argument for Address {
     fn decode(bytes: &[u8], pos: usize) -> (Self, usize) {
         let (value, pos) = read::<u32>(bytes, pos);
         (Self::new(value), pos)
+    }
+
+    fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+        let (value, pos) = try_read::<u32>(bytes, pos)?;
+        Some((Self::new(value), pos))
     }
 }
 
@@ -194,6 +251,12 @@ macro_rules! impl_argument_for_tuple {
             fn decode(bytes: &[u8], pos: usize) -> (Self, usize) {
                 $( let ($i, pos) = $t::decode(bytes, pos); )*
                 (($($i,)*), pos)
+            }
+
+            #[inline(always)]
+            fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+                $( let ($i, pos) = $t::decode_checked(bytes, pos)?; )*
+                Some((($($i,)*), pos))
             }
         }
     };
@@ -219,6 +282,11 @@ macro_rules! impl_argument_for_int {
             #[inline(always)]
             fn decode(bytes: &[u8], pos: usize) -> (Self, usize) {
                 read::<$t>(bytes, pos)
+            }
+
+            #[inline(always)]
+            fn decode_checked(bytes: &[u8], pos: usize) -> Option<(Self, usize)> {
+                try_read::<$t>(bytes, pos)
             }
         }
         )*

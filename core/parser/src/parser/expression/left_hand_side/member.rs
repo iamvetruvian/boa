@@ -11,6 +11,7 @@ use crate::{
     lexer::{InputElement, TokenKind, token::ContainsEscapeSequence},
     parser::{
         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+        cursor::check_stack,
         expression::{
             Expression, FormalParameterListOrExpression,
             left_hand_side::template::TaggedTemplateLiteral, primary::PrimaryExpression,
@@ -65,6 +66,7 @@ where
 
         let token = cursor.peek(0, interner).or_abrupt()?;
         let position = token.span().start();
+        check_stack(position)?;
         let lhs: FormalParameterListOrExpression = match token.kind() {
             TokenKind::Keyword((Keyword::New | Keyword::Super | Keyword::Import, true)) => {
                 return Err(Error::general(

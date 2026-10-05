@@ -4,99 +4,64 @@ commit = "d86b2294eb0a17eaa281ff12c73c473ec864c72f"
 # Not implemented yet:
 flags = []
 
+# Every entry is audited: pattern, reason, link, owner, added, expiry,
+# work_item. `boa_tester check-config` rejects unjustified entries.
+# Matching: tests = substring on the test path; features = exact name with
+# pre-dot prefix fallback (documented in tests/tester/src/main.rs).
 features = [
-    ### Unimplemented features:
+    # Unimplemented features:
+    { pattern = "symbols-as-weakmap-keys", reason = "symbols as WeakMap keys unimplemented", link = "https://github.com/tc39/proposal-symbols-as-weakmap-keys", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.weakmap-keys" },
+    { pattern = "Intl.DisplayNames", reason = "Intl.DisplayNames unimplemented", link = "https://tc39.es/ecma402/#intl-displaynames-objects", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.intl-displaynames" },
+    { pattern = "Intl.RelativeTimeFormat", reason = "Intl.RelativeTimeFormat unimplemented", link = "https://tc39.es/ecma402/#intl-relativetimeformat-objects", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.intl-relativetime" },
+    { pattern = "Intl-enumeration", reason = "Intl enumeration proposal unimplemented", link = "https://github.com/tc39/proposal-intl-enumeration", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.intl-enumeration" },
+    { pattern = "Intl.DurationFormat", reason = "Intl.DurationFormat unimplemented", link = "https://github.com/tc39/proposal-intl-duration-format", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.intl-durationformat" },
+    { pattern = "regexp-duplicate-named-groups", reason = "duplicate named capture groups unimplemented", link = "https://tc39.es/ecma262/#sec-regexp-patterns", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.regexp-dup-groups" },
+    { pattern = "explicit-resource-management", reason = "explicit resource management unimplemented", link = "https://github.com/tc39/proposal-explicit-resource-management", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.explicit-resources" },
 
-    "symbols-as-weakmap-keys",
-    "Intl.DisplayNames",
-    "Intl.RelativeTimeFormat",
-    "Intl-enumeration",
-    "Intl.DurationFormat",
-    "regexp-duplicate-named-groups",
-    "explicit-resource-management",
+    # Pending proposals:
+    { pattern = "import-bytes", reason = "pending proposal", link = "https://github.com/tc39/proposal-import-bytes", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.import-bytes" },
+    { pattern = "Intl.Locale-info", reason = "pending proposal", link = "https://github.com/tc39/proposal-intl-locale-info", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.locale-info" },
+    { pattern = "legacy-regexp", reason = "pending proposal", link = "https://github.com/tc39/proposal-regexp-legacy-features", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.legacy-regexp" },
+    { pattern = "import-defer", reason = "pending proposal", link = "https://github.com/tc39/proposal-defer-import-eval", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.import-defer" },
+    { pattern = "ShadowRealm", reason = "pending proposal", link = "https://github.com/tc39/proposal-realms", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.shadowrealm" },
+    { pattern = "decorators", reason = "pending proposal", link = "https://github.com/tc39/proposal-decorators", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.decorators" },
+    { pattern = "source-phase-imports-module-source", reason = "pending proposal (test262 special specifier)", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.source-phase-imports" },
+    { pattern = "immutable-arraybuffer", reason = "pending proposal", link = "https://github.com/tc39/proposal-immutable-arraybuffer", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.immutable-arraybuffer" },
+    { pattern = "iterator-includes", reason = "pending proposal", link = "https://github.com/tc39/proposal-iterator-includes", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.iterator-includes" },
+    { pattern = "iterator-chunking", reason = "pending proposal", link = "https://github.com/tc39/proposal-iterator-chunking", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.iterator-chunking" },
+    { pattern = "error-stack-accessor", reason = "pending proposal", link = "https://github.com/tc39/proposal-error-stack-accessor", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.error-stack" },
 
-    ### Pending proposals
-
-    # https://github.com/tc39/proposal-import-bytes
-    "import-bytes",
-
-    # https://github.com/tc39/proposal-intl-locale-info
-    "Intl.Locale-info",
-
-    # https://github.com/tc39/proposal-regexp-legacy-features
-    "legacy-regexp",
-
-    # https://github.com/tc39/proposal-defer-import-eval
-    "import-defer",
-
-    # https://github.com/tc39/proposal-realms
-    "ShadowRealm",
-
-    # https://github.com/tc39/proposal-decorators
-    "decorators",
-
-    # Source Phase Imports
-    # test262 special specifier
-    "source-phase-imports-module-source",
-
-    # Immutable Array Buffer
-    # https://github.com/tc39/proposal-immutable-arraybuffer
-    "immutable-arraybuffer",
-
-    # Iterator Includes
-    # https://github.com/tc39/proposal-iterator-includes
-    "iterator-includes",
-
-    # Iterator Chunking
-    # https://github.com/tc39/proposal-iterator-chunking
-    "iterator-chunking",
-
-    # Error Stack Accessor
-    # https://github.com/tc39/proposal-error-stack-accessor
-    "error-stack-accessor",
-
-    ### Non-standard
-    "caller",
+    # Non-standard:
+    { pattern = "caller", reason = "non-standard legacy `caller` extension, not implemented", link = "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/caller", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.caller-nonstandard" },
 ]
 
 tests = [
-    # Should throw an OOM error instead of filling the whole RAM.
-    "test/staging/sm/String/replace-math.js",
-    # Panics
-    "test/staging/sm/regress/regress-554955-2.js",
-    "test/staging/sm/class/fields-static-class-name-binding-eval.js",
-    "test/staging/sm/regress/regress-554955-1.js",
-    "test/staging/sm/regress/regress-554955-3.js",
-    # Extension canonicalization not yet supported by ICU4X.
-    # TODO: Remove when https://github.com/unicode-org/icu4x/issues/3483 is fixed.
-    "test/intl402/Intl/getCanonicalLocales/non-iana-canon.js",
-    "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-measurement-system.js",
-    "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-col-strength.js",
-    "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-calendar.js",
-    "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-timezone.js",
-    "test/intl402/Intl/getCanonicalLocales/transformed-ext-canonical.js",
-    # h24 hour cycle not supported by ICU4X.
-    # TODO: Remove when https://github.com/unicode-org/icu4x/issues/6597 is fixed.
-    "test/intl402/Locale/getters.js",
-    "test/intl402/Locale/constructor-getter-order.js",
-    "test/intl402/Locale/constructor-options-hourcycle-valid.js",
-    # Extension canonicalization not yet supported by ICU4X.
-    # TODO: Remove when https://github.com/unicode-org/icu4x/issues/3483 is fixed.
-    "test/intl402/Locale/prototype/calendar/canonicalize.js",
-    "test/intl402/Locale/constructor-non-iana-canon.js",
-    "test/intl402/Locale/constructor-options-canonicalized.js",
-    # TODO: Remove when we implement `DateTimeFormat.prototype.formatRangeToParts`
-    "test/intl402/DateTimeFormat/prototype/formatRangeToParts",
-    # TODO: Remove this once regress fixes the named groups parsing issue.
-    "test/built-ins/RegExp/named-groups/non-unicode-property-names-valid.js",
-    # Source Phase Imports: AbstractModuleSource built-in and static `import source` not yet implemented.
-    "test/built-ins/AbstractModuleSource/proto.js",
-    "test/built-ins/AbstractModuleSource/name.js",
-    "test/built-ins/AbstractModuleSource/length.js",
-    "test/built-ins/AbstractModuleSource/prototype/proto.js",
-    "test/built-ins/AbstractModuleSource/prototype/Symbol.toStringTag.js",
-    "test/built-ins/AbstractModuleSource/prototype/constructor.js",
-    "test/built-ins/AbstractModuleSource/prototype.js",
-    "test/built-ins/AbstractModuleSource/throw-from-constructor.js",
-    "test/language/module-code/source-phase-import/import-source.js",
+    { pattern = "test/staging/sm/String/replace-math.js", reason = "fills RAM instead of throwing OOM", link = "https://github.com/tc39/test262/blob/main/test/staging/sm/String/replace-math.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.oom-replace" },
+    { pattern = "test/staging/sm/regress/regress-554955-2.js", reason = "panics the engine", link = "https://github.com/tc39/test262/blob/main/test/staging/sm/regress/regress-554955-2.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.staging-panics" },
+    { pattern = "test/staging/sm/class/fields-static-class-name-binding-eval.js", reason = "panics the engine", link = "https://github.com/tc39/test262/blob/main/test/staging/sm/class/fields-static-class-name-binding-eval.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.staging-panics" },
+    { pattern = "test/staging/sm/regress/regress-554955-1.js", reason = "panics the engine", link = "https://github.com/tc39/test262/blob/main/test/staging/sm/regress/regress-554955-1.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.staging-panics" },
+    { pattern = "test/staging/sm/regress/regress-554955-3.js", reason = "panics the engine", link = "https://github.com/tc39/test262/blob/main/test/staging/sm/regress/regress-554955-3.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.staging-panics" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/non-iana-canon.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-measurement-system.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-col-strength.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-calendar.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-timezone.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Intl/getCanonicalLocales/transformed-ext-canonical.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Locale/getters.js", reason = "h24 hour cycle not supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/6597", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-h24" },
+    { pattern = "test/intl402/Locale/constructor-getter-order.js", reason = "h24 hour cycle not supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/6597", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-h24" },
+    { pattern = "test/intl402/Locale/constructor-options-hourcycle-valid.js", reason = "h24 hour cycle not supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/6597", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-h24" },
+    { pattern = "test/intl402/Locale/prototype/calendar/canonicalize.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Locale/constructor-non-iana-canon.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/Locale/constructor-options-canonicalized.js", reason = "extension canonicalization not yet supported by ICU4X", link = "https://github.com/unicode-org/icu4x/issues/3483", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.icu4x-canonicalization" },
+    { pattern = "test/intl402/DateTimeFormat/prototype/formatRangeToParts", reason = "DateTimeFormat.prototype.formatRangeToParts unimplemented", link = "https://tc39.es/ecma402/#sec-datetimeformat.prototype.formatrangetoparts", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.format-range-to-parts" },
+    { pattern = "test/built-ins/RegExp/named-groups/non-unicode-property-names-valid.js", reason = "regress parser rejects valid non-unicode property names", link = "https://github.com/tc39/test262/blob/main/test/built-ins/RegExp/named-groups/non-unicode-property-names-valid.js", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.regexp-named-groups" },
+    { pattern = "test/built-ins/AbstractModuleSource/proto.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/name.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/length.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/prototype/proto.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/prototype/Symbol.toStringTag.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/prototype/constructor.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/prototype.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/built-ins/AbstractModuleSource/throw-from-constructor.js", reason = "AbstractModuleSource and static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
+    { pattern = "test/language/module-code/source-phase-import/import-source.js", reason = "static import source unimplemented", link = "https://github.com/tc39/proposal-source-phase-imports", owner = "step0-triage", added = "2026-10-02", expiry = "2027-04-01", work_item = "P2.abstract-module-source" },
 ]

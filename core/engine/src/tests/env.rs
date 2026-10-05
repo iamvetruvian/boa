@@ -1,7 +1,7 @@
 use boa_macros::js_str;
 use indoc::indoc;
 
-use crate::{JsNativeErrorKind, TestAction, run_test_actions};
+use crate::{JsNativeErrorKind, JsValue, TestAction, run_test_actions};
 
 #[test]
 // https://github.com/boa-dev/boa/issues/2317
@@ -197,6 +197,77 @@ fn eval_created_bindings_can_be_deleted_5333() {
                 }());
             "#},
             js_str!("2:undefined"),
+        ),
+    ]);
+}
+
+#[test]
+// https://tc39.es/ecma262/#sec-putvalue
+fn strict_assign_to_binding_created_by_rhs_throws() {
+    run_test_actions([
+        TestAction::assert_native_error(
+            indoc! {r#"
+                "use strict";
+                undeclared = (this.undeclared = 5);
+            "#},
+            JsNativeErrorKind::Reference,
+            "undeclared is not defined",
+        ),
+        // Sloppy mode still creates the global.
+        TestAction::run(indoc! {r#"
+            sloppyCreated = (this.sloppyCreated = 5);
+        "#}),
+        TestAction::assert_eq("sloppyCreated", 5),
+    ]);
+}
+
+#[test]
+// https://tc39.es/ecma262/#sec-ordinaryownpropertykeys
+// Found by P3 differential testing (jsshell agreement probe); no Test262
+// test covers Object.keys(globalThis) order.
+fn global_var_bindings_enumerate_in_source_order() {
+    run_test_actions([
+        TestAction::run(indoc! {r#"
+            var zkord_a = 0; var zkord_b = 0; var zkord_c = 0; var zkord_d = 0; var zkord_e = 0;
+        "#}),
+        TestAction::assert_eq(
+            indoc! {r#"
+                Object.keys(globalThis).filter(function (k) {
+                    return k.indexOf("zkord_") === 0;
+                }).join(",");
+            "#},
+            js_str!("zkord_a,zkord_b,zkord_c,zkord_d,zkord_e"),
+        ),
+        // Global eval takes the same instantiation path.
+        TestAction::run(indoc! {r#"
+            eval("var zkev_a = 0; var zkev_b = 0; var zkev_c = 0;");
+        "#}),
+        TestAction::assert_eq(
+            indoc! {r#"
+                Object.keys(globalThis).filter(function (k) {
+                    return k.indexOf("zkev_") === 0;
+                }).join(",");
+            "#},
+            js_str!("zkev_a,zkev_b,zkev_c"),
+        ),
+    ]);
+}
+
+#[test]
+// https://tc39.es/ecma262/#sec-global-object
+// Found by P3 differential testing (state-filter asymmetry against jsshell):
+// the engine exposed a `TypedArray` global the spec does not list.
+fn no_typedarray_global_binding() {
+    run_test_actions([
+        TestAction::assert_eq("typeof TypedArray", js_str!("undefined")),
+        TestAction::assert_eq("globalThis.TypedArray", JsValue::undefined()),
+        // The intrinsic itself stays reachable through its subclasses.
+        TestAction::assert_eq(
+            "typeof Object.getPrototypeOf(Uint8Array)",
+            js_str!("function"),
+        ),
+        TestAction::assert(
+            "Object.getPrototypeOf(Uint8Array) === Object.getPrototypeOf(Float64Array)",
         ),
     ]);
 }

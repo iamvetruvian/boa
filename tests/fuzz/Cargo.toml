@@ -10,11 +10,16 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4.13"
 
-arbitrary = "1.4.2"
+arbitrary = { version = "1.4.2", features = ["derive"] }
 boa_ast = { path = "../../core/ast", features = ["arbitrary"] }
-boa_engine = { path = "../../core/engine", features = ["fuzz"] }
+boa_engine = { path = "../../core/engine", features = ["fuzz", "verify-bytecode", "vm-coverage"] }
+boa_gc = { path = "../../core/gc" }
 boa_interner = { path = "../../core/interner", features = ["arbitrary"] }
 boa_parser = { path = "../../core/parser" }
+boa_runtime = { path = "../../core/runtime" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
 
 # Prevent this from interfering with workspaces
 [workspace]
@@ -38,6 +43,36 @@ doc = false
 [[bin]]
 name = "bytecompiler-implied"
 path = "fuzz_targets/bytecompiler-implied.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "source-bytes"
+path = "fuzz_targets/source-bytes.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "module-specifier"
+path = "fuzz_targets/module-specifier.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "url-parse"
+path = "fuzz_targets/url-parse.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fetch-response"
+path = "fuzz_targets/fetch-response.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "cli-exec"
+path = "fuzz_targets/cli-exec.rs"
 test = false
 doc = false
 [package.metadata.docs.rs]

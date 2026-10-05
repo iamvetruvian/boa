@@ -1,0 +1,327 @@
+# Curated area triage for the conformance-gap matrix (P2.1).
+#
+# `boa_tester report --areas docs/gap-areas.toml` joins this file at render
+# time; regenerating the matrix never overwrites it. Areas without an entry
+# render as untriaged (or `clean` when they have no gap).
+#
+# status: open | in-progress | closed | deferred
+# deferred = not actionable now (pending proposal, upstream block, or
+# non-standard); the notes must say why and what unblocks it.
+
+[areas."language:expressions"]
+layer = "engine"
+work_item = "P2.language-expressions"
+status = "open"
+notes = "264I are pending proposals (import-defer, source-phase-imports, decorators) and correct; 19F need per-test triage (choke-adjacent: parser/bytecompiler/VM)."
+
+[areas."language:statements"]
+layer = "engine"
+work_item = "P2.language-statements"
+status = "open"
+notes = "190I unimplemented explicit-resource-management + 14I decorators proposal; 20F need per-test triage (choke-adjacent)."
+
+[areas."builtin:Iterator"]
+layer = "engine/builtins"
+work_item = "P2.iterator"
+status = "open"
+notes = "122I are iterator-helpers proposals (chunking, includes); 6F + 6I explicit-resources are implementable."
+
+[areas."intl:DateTimeFormat"]
+layer = "intl"
+work_item = "P2.intl-datetimeformat"
+status = "open"
+notes = "87F + 36I (formatRangeToParts). Largest intl failure cluster with NumberFormat/Temporal."
+
+[areas."intl:NumberFormat"]
+layer = "intl"
+work_item = "P2.intl-numberformat"
+status = "open"
+notes = "119F, no ignores. Triaged 2026-10-02: clusters on Intl.NumberFormat-unified (55) + Intl.NumberFormat-v3 (40) spec revisions; scientific/engineering notation blocked on upstream ICU4X (see TODO in number_format/mod.rs). Needs an intl workstream, not a session fix."
+
+[areas."language:import"]
+layer = "engine/modules"
+work_item = "P2.language-import"
+status = "open"
+notes = "103I import-defer + 5I immutable-arraybuffer are pending proposals; 5F are implementable."
+
+[areas."intl:DurationFormat"]
+layer = "intl"
+work_item = "P2.intl-durationformat"
+status = "open"
+notes = "109I unimplemented feature + 1F."
+
+[areas."intl:Temporal"]
+layer = "temporal"
+work_item = "P2.temporal"
+status = "open"
+notes = "93F + 12I (DurationFormat/enumeration overlap)."
+
+[areas."builtin:AsyncDisposableStack"]
+layer = "engine/builtins"
+work_item = "P2.explicit-resources"
+status = "open"
+notes = "104I: explicit-resource-management unimplemented (shipped standard)."
+
+[areas."staging:sm"]
+layer = "staging"
+work_item = "P2.staging-sm"
+status = "open"
+notes = "Legacy SpiderMonkey suite: 94F need per-test triage (engine bugs vs legacy-only vs upstream-wrong); 6I are OOM/panic/weakmap entries."
+
+[areas."builtin:DisposableStack"]
+layer = "engine/builtins"
+work_item = "P2.explicit-resources"
+status = "open"
+notes = "93I: explicit-resource-management unimplemented (shipped standard)."
+
+[areas."intl:RelativeTimeFormat"]
+layer = "intl"
+work_item = "P2.intl-relativetime"
+status = "open"
+notes = "78I unimplemented feature + 2F."
+
+[areas."intl:Locale"]
+layer = "intl"
+work_item = "P2.intl-locale"
+status = "open"
+notes = "60I Intl.Locale-info proposal; 6I ICU4X/canonicalization-blocked; 2F implementable."
+
+[areas."builtin:ShadowRealm"]
+layer = "engine/builtins"
+work_item = "P2.shadowrealm"
+status = "deferred"
+notes = "Pending TC39 proposal; the ignore is correct until the proposal advances."
+
+[areas."intl:DisplayNames"]
+layer = "intl"
+work_item = "P2.intl-displaynames"
+status = "open"
+notes = "46I unimplemented feature + 11F."
+
+[areas."staging:explicit-resource-management"]
+layer = "engine/builtins"
+work_item = "P2.explicit-resources"
+status = "open"
+notes = "53I: explicit-resource-management unimplemented (shipped standard)."
+
+[areas."builtin:Error"]
+layer = "engine/builtins"
+work_item = "P2.error-stack"
+status = "deferred"
+notes = "35I error-stack-accessor: pending TC39 proposal; the ignore is correct."
+
+[areas."intl:Intl"]
+layer = "intl"
+work_item = "P2.intl-enumeration"
+status = "deferred"
+notes = "25I Intl-enumeration proposal + 6I ICU4X-canonicalization-blocked; unblocks on proposal advance / upstream ICU4X."
+
+[areas."builtin:ArrayBuffer"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "29I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."annexB:built-ins"]
+layer = "engine"
+work_item = "P2.legacy-regexp"
+status = "open"
+notes = "26I legacy-regexp proposal (correct) + 1I regexp-duplicate-named-groups (implementable)."
+
+[areas."builtin:SuppressedError"]
+layer = "engine/builtins"
+work_item = "P2.explicit-resources"
+status = "open"
+notes = "22I: explicit-resource-management unimplemented (shipped standard)."
+
+[areas."builtin:Function"]
+layer = "engine/builtins"
+work_item = "P2.caller-nonstandard"
+status = "deferred"
+notes = "21I non-standard legacy `caller` extension; unlikely to ever implement; the ignore stands."
+
+[areas."builtin:WeakMap"]
+layer = "engine/builtins"
+work_item = "P2.weakmap-keys"
+status = "open"
+notes = "17I symbols-as-weakmap-keys unimplemented."
+
+[areas."builtin:RegExp"]
+layer = "engine/builtins"
+work_item = "P2.regexp-named-groups"
+status = "open"
+notes = "14I named/duplicate-named group gaps."
+
+[areas."annexB:language"]
+layer = "engine"
+work_item = "P2.annexB-language"
+status = "open"
+notes = "13F, no ignores. Small pure-failure area; good fix-loop candidate."
+
+[areas."builtin:DataView"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "11I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:AsyncIteratorPrototype"]
+layer = "engine/builtins"
+work_item = "P2.iterator"
+status = "open"
+notes = "9I iterator-helpers gaps; confirm per-test against chunking/includes proposals."
+
+[areas."builtin:Atomics"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "9I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:AbstractModuleSource"]
+layer = "engine/modules"
+work_item = "P2.abstract-module-source"
+status = "deferred"
+notes = "8I source-phase-imports proposal surface; the ignore is correct until the proposal advances."
+
+[areas."builtin:TypedArray"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "8I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:WeakSet"]
+layer = "engine/builtins"
+work_item = "P2.weakmap-keys"
+status = "open"
+notes = "7I symbols-as-weakmap-keys unimplemented."
+
+[areas."builtin:Symbol"]
+layer = "engine/builtins"
+work_item = "P2.explicit-resources"
+status = "open"
+notes = "6I: explicit-resource-management unimplemented (shipped standard)."
+
+[areas."language:module-code"]
+layer = "engine/modules"
+work_item = "P2.language-modules"
+status = "open"
+notes = "4I source-phase-imports proposal (correct); 1F implementable."
+
+[areas."intl:BigInt"]
+layer = "intl"
+work_item = "P2.intl-bigint"
+status = "open"
+notes = "3F, no ignores. Small pure-failure area; good fix-loop candidate."
+
+[areas."intl:PluralRules"]
+layer = "intl"
+work_item = "P2.intl-pluralrules"
+status = "open"
+notes = "3F, no ignores. Small pure-failure area; good fix-loop candidate."
+
+[areas."language:global-code"]
+layer = "engine"
+work_item = "P2.language-global-code"
+status = "open"
+notes = "3F, no ignores. Small choke-adjacent area; good fix-loop candidate."
+
+[areas."staging:built-ins"]
+layer = "engine"
+work_item = "P2.regexp-dup-groups"
+status = "open"
+notes = "3I regexp-duplicate-named-groups unimplemented."
+
+[areas."staging:decorators"]
+layer = "engine"
+work_item = "P2.decorators"
+status = "deferred"
+notes = "3I decorators: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:FinalizationRegistry"]
+layer = "engine/builtins"
+work_item = "P2.weakmap-keys"
+status = "open"
+notes = "2I symbols-as-weakmap-keys unimplemented."
+
+[areas."builtin:Promise"]
+layer = "engine/async"
+work_item = "P2.promise"
+status = "closed"
+notes = "Fixed 2026-10-02: Promise.try rewritten to the final ECMA-262 algorithm (PromiseResolve passthrough); 2F fixed, area at 100%. DB entry promise-try-no-wrap."
+
+[areas."builtin:String"]
+layer = "string"
+work_item = "P2.regexp-dup-groups"
+status = "open"
+notes = "2I regexp-duplicate-named-groups unimplemented."
+
+[areas."builtin:Temporal"]
+layer = "temporal"
+work_item = "P2.temporal"
+status = "open"
+notes = "2F, no ignores."
+
+[areas."builtin:TypedArrayConstructors"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "2I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:Uint8Array"]
+layer = "engine/builtins"
+work_item = "P2.immutable-arraybuffer"
+status = "deferred"
+notes = "2I immutable-arraybuffer: pending TC39 proposal; the ignore is correct."
+
+[areas."builtin:WeakRef"]
+layer = "engine/builtins"
+work_item = "P2.weakmap-keys"
+status = "open"
+notes = "2I symbols-as-weakmap-keys unimplemented."
+
+[areas."intl:FallbackSymbol"]
+layer = "intl"
+work_item = "P2.intl-fallback"
+status = "open"
+notes = "2F, no ignores. Small pure-failure area; good fix-loop candidate."
+
+[areas."language:arguments-object"]
+layer = "engine"
+work_item = "P2.caller-nonstandard"
+status = "deferred"
+notes = "2I non-standard legacy `caller` extension; unlikely to ever implement."
+
+[areas."builtin:Number"]
+layer = "string"
+work_item = "P2.builtin-number"
+status = "open"
+notes = "1F (toExponential return-values), no ignores. Number-formatting kernel."
+
+[areas."intl:Number"]
+layer = "intl"
+work_item = "P2.intl-number"
+status = "open"
+notes = "1F (toLocaleString/NumberFormat parity), no ignores."
+
+[areas."intl:misc"]
+layer = "intl"
+work_item = "P2.intl-misc"
+status = "open"
+notes = "1F (supportedLocalesOf-consistent-with-resolvedOptions), no ignores."
+
+[areas."language:destructuring"]
+layer = "engine"
+work_item = "P2.language-destructuring"
+status = "open"
+notes = "1F, no ignores. Choke-adjacent; good fix-loop candidate."
+
+[areas."language:identifier-resolution"]
+layer = "engine/environments"
+work_item = "P2.language-scope"
+status = "closed"
+notes = "Fixed 2026-10-02: SetNameByLocator now judges resolvability at reference creation (CapturedBinding carries capture-time state); 1F fixed, area at 100%. DB entry strict-assign-rhs-created-binding."
+
+[areas."staging:source-phase-imports"]
+layer = "engine/modules"
+work_item = "P2.source-phase-imports"
+status = "deferred"
+notes = "1I source-phase-imports: pending TC39 proposal; the ignore is correct."

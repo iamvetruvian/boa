@@ -6,54 +6,22 @@ use boa_engine::parser::source::UTF16Input;
 use boa_engine::property::Attribute;
 use boa_engine::value::{Nullable, TryFromJs};
 use boa_engine::{
-    js_error, js_str, js_string, Context, Finalize, IntoJsFunctionCopied, JsData, JsResult,
-    JsString, JsValue, Source, Trace,
+    js_str, js_string, Context, Finalize, IntoJsFunctionCopied, JsData, JsResult, JsString,
+    JsValue, Source, Trace,
 };
+use boa_outcomes::TestOutcomeResult;
 use boa_runtime::url::Url;
 use boa_runtime::{DefaultLogger, NullLogger};
+use collect::TestStatus;
 use logger::RecordingLogEvent;
 use std::cell::{OnceCell, RefCell};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
+pub mod collect;
 mod fetcher;
 mod logger;
-
-/// The test status JavaScript type from WPT. This is defined in the test harness.
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum TestStatus {
-    Pass = 0,
-    Fail = 1,
-    Timeout = 2,
-    NotRun = 3,
-    PreconditionFailed = 4,
-}
-
-impl std::fmt::Display for TestStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Pass => write!(f, "PASS"),
-            Self::Fail => write!(f, "FAIL"),
-            Self::Timeout => write!(f, "TIMEOUT"),
-            Self::NotRun => write!(f, "NOTRUN"),
-            Self::PreconditionFailed => write!(f, "PRECONDITION FAILED"),
-        }
-    }
-}
-
-impl TryFromJs for TestStatus {
-    fn try_from_js(value: &JsValue, context: &mut Context) -> JsResult<Self> {
-        match value.to_u32(context) {
-            Ok(0) => Ok(Self::Pass),
-            Ok(1) => Ok(Self::Fail),
-            Ok(2) => Ok(Self::Timeout),
-            Ok(3) => Ok(Self::NotRun),
-            Ok(4) => Ok(Self::PreconditionFailed),
-            _ => Err(js_error!("Invalid test status")),
-        }
-    }
-}
 
 /// A single test.
 #[derive(TryFromJs)]
@@ -201,21 +169,23 @@ fn create_context(wpt_path: &Path) -> (Context, logger::RecordingLogger, fetcher
     (context, logger, fetcher)
 }
 
-/// The result callback for the WPT test.
-#[track_caller]
+/// The result callback for the WPT test: records the verdict instead of
+/// panicking, so one failing subtest never aborts its file.
 fn result_callback__(
     ContextData(logger): ContextData<logger::RecordingLogger>,
     test: Test,
     context: &mut Context,
 ) -> JsResult<()> {
-    // Check the logs if the test succeeded.
-    assert_eq!(
-        test.status,
-        TestStatus::Pass,
-        "Test {:?} failed with message:\n  {:?}",
-        test.name.to_std_string_lossy(),
-        test.message.unwrap_or_default()
-    );
+    let collector = context
+        .get_data::<collect::SubtestCollector>()
+        .expect("collector missing")
+        .clone();
+    let name = test.name.to_std_string_lossy();
+    collector.push(collect::SubtestRecord {
+        name: name.clone(),
+        status: test.status.clone(),
+        message: test.message.unwrap_or_default().to_std_string_lossy(),
+    });
 
     // Check the logs.
     let logs = logger.all_logs();
@@ -232,12 +202,13 @@ fn result_callback__(
                     logs.iter()
                         .any(|log: &RecordingLogEvent| -> bool { log.msg.contains(&re_str) })
                 };
-                assert!(
-                    passes,
-                    "Test {:?} failed to find log: {}",
-                    test.name.to_std_string_lossy(),
-                    re.display()
-                );
+                if !passes {
+                    collector.push(collect::SubtestRecord {
+                        name: format!("{name} [logs]"),
+                        status: TestStatus::Fail,
+                        message: format!("failed to find log: {}", re.display()),
+                    });
+                }
             }
         }
     }
@@ -272,7 +243,11 @@ impl TestCompletion {
     }
 }
 
-/// Load and execute the test file.
+/// Load and execute the test file, recording one counted [`collect::FileOutcome`].
+///
+/// Ignored files are skipped without executing. Harness setup failures
+/// (missing testharness.js, unregistrable callbacks) still panic: broken
+/// infrastructure must fail fast, not masquerade as test verdicts.
 // This can be marked as allow unused because it would give false positives
 // in clippy.
 #[allow(unused)]
@@ -280,8 +255,9 @@ fn execute_test_file(path: &Path) {
     // Workspace `reqwest` uses `rustls-no-provider`; install ring as the
     // process-wide CryptoProvider so `BlockingReqwestFetcher` construction
     // in `create_context` doesn't panic with `No provider set`.
-    rustls::crypto::ring::default_provider().install_default().ok();
-    let dir = path.parent().unwrap();
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .ok();
     let wpt_path = PathBuf::from(
         std::env::var("WPT_ROOT").expect("Could not find the WPT_ROOT environment variable"),
     );
@@ -294,12 +270,37 @@ fn execute_test_file(path: &Path) {
             .canonicalize()
             .unwrap()
     };
+    let file = collect::wpt_relative(path, &wpt_path);
+    if let Some(entry) = collect::config().ignored.match_test(&file) {
+        collect::append_record(
+            &collect::out_dir(),
+            &collect::FileOutcome::ignored(file, entry),
+        );
+        return;
+    }
+    let out_dir = collect::out_dir();
+    let record = |outcome: TestOutcomeResult, failed: Vec<String>, message: Option<String>| {
+        collect::append_record(
+            &out_dir,
+            &collect::FileOutcome {
+                file: file.clone(),
+                outcome,
+                failed,
+                message,
+                ignore: None,
+            },
+        );
+    };
+
+    let dir = path.parent().unwrap();
     let (mut context, logger, mut fetcher) = create_context(&wpt_path);
     let test_done = TestCompletion::new();
+    let collector = collect::SubtestCollector::new();
 
     // Insert the logger to be able to access the logs after the test is done.
     context.insert_data(logger.clone());
     context.insert_data(test_done.clone());
+    context.insert_data(collector.clone());
 
     let function = result_callback__
         .into_js_function_copied(&mut context)
@@ -327,7 +328,18 @@ fn execute_test_file(path: &Path) {
 
     // Load the test.
     let source = TestSuiteSource::new(path);
-    for script in source.scripts().expect("Could not get scripts") {
+    let scripts = match source.scripts() {
+        Ok(scripts) => scripts,
+        Err(err) => {
+            record(
+                TestOutcomeResult::HarnessError,
+                Vec::new(),
+                Some(format!("could not list scripts: {err}")),
+            );
+            return;
+        }
+    };
+    for script in scripts {
         // Resolve the source path relative to the script path, but under the wpt_path.
         let path = if script.starts_with('/') {
             wpt_path.join(script.strip_prefix('/').unwrap())
@@ -335,40 +347,108 @@ fn execute_test_file(path: &Path) {
             dir.join(&script)
         };
 
-        let path = path.canonicalize().expect("Could not canonicalize path");
+        let Ok(path) = path.canonicalize() else {
+            record(
+                TestOutcomeResult::HarnessError,
+                Vec::new(),
+                Some(format!("could not canonicalize script: {}", script)),
+            );
+            return;
+        };
 
         if path.exists() {
-            let source = Source::from_filepath(&path).expect("Could not parse the source.");
+            let source = match Source::from_filepath(&path) {
+                Ok(source) => source,
+                Err(err) => {
+                    record(
+                        TestOutcomeResult::HarnessError,
+                        Vec::new(),
+                        Some(format!("could not parse {path:?}: {err:?}")),
+                    );
+                    return;
+                }
+            };
             if let Err(err) = context.eval(source) {
-                panic!("Could not eval script, path = {path:?}, err = {err:?}");
+                record(
+                    TestOutcomeResult::HarnessError,
+                    Vec::new(),
+                    Some(format!("could not eval script {path:?}: {err:?}")),
+                );
+                return;
             }
         } else {
-            panic!("Script does not exist, path = {path:?}");
+            record(
+                TestOutcomeResult::HarnessError,
+                Vec::new(),
+                Some(format!("script does not exist: {path:?}")),
+            );
+            return;
         }
     }
 
     fetcher.set_current_file(&source.path);
 
-    if let Err(e) = context.eval(source.source()) {
-        panic!("Could not run the test source:\n{e}")
+    if let Err(err) = context.eval(source.source()) {
+        record(
+            TestOutcomeResult::Failed,
+            Vec::new(),
+            Some(format!("uncaught error: {err:?}")),
+        );
+        return;
     }
 
-    context.run_jobs().expect("Could not run jobs");
+    if let Err(err) = context.run_jobs() {
+        record(
+            TestOutcomeResult::HarnessError,
+            Vec::new(),
+            Some(format!("could not run jobs: {err:?}")),
+        );
+        return;
+    }
 
     // Done()
-    if let Err(e) = context.eval(Source::from_bytes(b"done()")) {
-        panic!("`done()` returned an error\n{e}");
+    if let Err(err) = context.eval(Source::from_bytes(b"done()")) {
+        record(
+            TestOutcomeResult::Failed,
+            Vec::new(),
+            Some(format!("`done()` returned an error: {err:?}")),
+        );
+        return;
     }
 
     let start = std::time::Instant::now();
     while !test_done.is_done() {
         context.run_jobs();
 
-        assert!(
-            start.elapsed().as_secs() < 10,
-            "Test did not complete in 10 seconds."
-        );
+        if start.elapsed().as_secs() >= 10 {
+            let subtests = collector.records();
+            let (mut outcome, failed) = collect::file_outcome(&subtests);
+            if outcome == TestOutcomeResult::Passed {
+                outcome = TestOutcomeResult::Timeout;
+            }
+            record(
+                outcome,
+                failed,
+                Some(format!(
+                    "test did not complete in 10 seconds ({} subtests reported)",
+                    subtests.len()
+                )),
+            );
+            return;
+        }
     }
+
+    let subtests = collector.records();
+    if subtests.is_empty() {
+        record(
+            TestOutcomeResult::HarnessError,
+            Vec::new(),
+            Some("no subtests reported".to_string()),
+        );
+        return;
+    }
+    let (outcome, failed) = collect::file_outcome(&subtests);
+    record(outcome, failed, None);
 }
 
 /// Test the console with the WPT test suite.
@@ -377,8 +457,6 @@ fn execute_test_file(path: &Path) {
 fn console(
     #[base_dir = "${WPT_ROOT}"]
     #[files("console/*.any.js")]
-    // TODO: The console-log-large-array.any.js test is too slow.
-    #[exclude("console-log-large-array.any.js")]
     #[exclude("idlharness")]
     path: PathBuf,
 ) {
@@ -392,9 +470,8 @@ fn encoding(
     #[base_dir = "${WPT_ROOT}"]
     #[files("encoding/api-*.any.js")]
     #[files("encoding/textencoder-constructor-non-utf.any.js")]
-    // TODO: re-enable those when better encoding and options are supported.
-    // #[files("encoding/textdecoder-*.any.js")]
-    // #[files("encoding/textencoder-*.any.js")]
+    #[files("encoding/textdecoder-*.any.js")]
+    #[files("encoding/textencoder-utf16-surrogates.any.js")]
     #[exclude("idlharness")]
     path: PathBuf,
 ) {
@@ -402,18 +479,12 @@ fn encoding(
 }
 
 /// Test the URL class with the WPT test suite.
-// A bunch of these tests are failing due to lack of support in the URL class
-// or missing APIs such as fetch.
 #[cfg(not(clippy))]
 #[rstest::rstest]
 fn url(
     #[base_dir = "${WPT_ROOT}"]
     #[files("url/url-*.any.js")]
     #[exclude("idlharness")]
-    // "fetch is not defined"
-    #[exclude("url-origin.any.js")]
-    #[exclude("url-setters.any.js")]
-    #[exclude("url-constructor.any.js")]
     path: PathBuf,
 ) {
     execute_test_file(&path);
@@ -439,8 +510,6 @@ fn timers(
     #[base_dir = "${WPT_ROOT}"]
     #[files("html/webappapis/timers/*.any.js")]
     #[exclude("idlharness")]
-    // String-eval form of setTimeout is not implemented in boa_runtime.
-    #[exclude("evil-spec-example")]
     path: PathBuf,
 ) {
     execute_test_file(&path);

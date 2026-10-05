@@ -1,0 +1,40 @@
+# P7.2: canonical cargo-mutants configuration. Driven by
+# `scripts/run-mutation.sh` (pinned-toolchain guard, scratch dir, kill-threshold
+# gate). See `docs/boa-mutants.md` for the engine-specific mutant set that
+# covers what generic operators (and mutants' own file discovery) cannot.
+#
+# Scope rule: mutate the shipped product (`core/*`), never the oracles.
+# Test harnesses, benches, examples, and the fuzz/tester tooling are
+# correctness-checked by use, not by mutation; mutating them is circular.
+
+# Product sources only. globs containing a slash match the whole path.
+examine_globs = ["core/*/src/**/*.rs"]
+
+# Never mutate test-only code, build scripts, or self-defeating oracles
+# (plan §7.2 gotcha: the `fuzz`/`trace` shims measure the suite — mutating
+# them tests the measuring tape, not the product).
+exclude_globs = [
+    "**/tests.rs",
+    "**/tests/**",
+    "**/test/**",
+    "**/build.rs",
+]
+
+# REQUIRED. Without this mutants copies ignored build trees into scratch
+# (notably the 37G `tests/fuzz/target/`); the copy then dies with ENOSPC
+# on small tmpfs mounts. The wrapper additionally points TMPDIR at
+# `target/mutants-tmp`.
+gitignore = true
+
+# Same test runner the repo gates use (`.config/nextest.toml` stays for CI;
+# mutants drives plain `cargo test`).
+test_tool = "cargo"
+
+# Run the mutated package's own suite per mutant (fast, precise blame).
+# Cross-package suites (engine behaviour over gc/string mutants) run in the
+# 7.3 battery, not per mutant.
+test_workspace = false
+
+# Engine suites are slow; floor the auto timeout so large-but-green suites
+# never flake into false timeouts.
+minimum_test_timeout = 600

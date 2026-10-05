@@ -1,0 +1,22 @@
+{
+  "boa_engine": {
+    "covered": 24564,
+    "rate": 0.6227563127471859,
+    "total": 39444
+  },
+  "boa_gc": {
+    "covered": 617,
+    "rate": 0.7761006289308177,
+    "total": 795
+  },
+  "boa_interner": {
+    "covered": 164,
+    "rate": 0.8913043478260869,
+    "total": 184
+  },
+  "boa_string": {
+    "covered": 696,
+    "rate": 0.7002012072434608,
+    "total": 994
+  }
+}

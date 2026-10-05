@@ -2804,7 +2804,7 @@ impl<'ctx> ByteCompiler<'ctx> {
 
         let source_map_entries = self.source_map_builder.build(final_bytecode_len.as_u32());
 
-        CodeBlock {
+        let block = CodeBlock {
             length: self.length,
             register_count,
             this_mode: self.this_mode,
@@ -2827,7 +2827,17 @@ impl<'ctx> ByteCompiler<'ctx> {
             debug_id: CodeBlock::get_next_codeblock_id(),
             #[cfg(feature = "trace")]
             traced: Cell::new(false),
+        };
+
+        // P5.1 validity gate: every finished block must satisfy the validity
+        // model. Tests/fuzzers only — never runs in production builds (see
+        // `docs/bytecode-validity.md` §0).
+        #[cfg(any(test, feature = "verify-bytecode"))]
+        if let Err(err) = block.verify() {
+            panic!("ByteCompiler produced invalid bytecode: {err:?}");
         }
+
+        block
     }
 
     fn compile_declaration_pattern(

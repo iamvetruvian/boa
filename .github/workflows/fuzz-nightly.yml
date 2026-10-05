@@ -1,0 +1,175 @@
+name: fuzz-fleet
+
+on:
+  # Nightly 4h full-corpus evolution per target (matrix, parallel jobs);
+  # weekly minimized-corpus + coverage report; weekly sanitizer matrix.
+  # Manual runs via dispatch.
+  schedule:
+    - cron: "0 2 * * *"
+    - cron: "0 6 * * 0"
+    - cron: "0 7 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-nightly:
+    if: github.event.schedule == '0 2 * * *' || github.event_name == 'workflow_dispatch'
+    name: Fuzz nightly (${{ matrix.target }}, 4h)
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [parser-idempotency, vm-implied, bytecompiler-implied, source-bytes, module-specifier, url-parse, fetch-response, cli-exec]
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with rust-src
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: rust-src
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-fuzz
+        uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
+        with:
+          crate: cargo-fuzz
+
+      - name: Sync regression seeds into corpora
+        run: cd tests/fuzz && ./sync-seeds.sh
+
+      - name: Fuzz ${{ matrix.target }} (4h evolution)
+        run: cd tests/fuzz && cargo fuzz run --dev -s none ${{ matrix.target }} -- -max_total_time=14400 -print_final_stats=1
+
+      - name: Upload crash artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: fuzz-nightly-crashes-${{ matrix.target }}
+          path: tests/fuzz/artifacts/
+          retention-days: 30
+
+      - name: Upload evolved corpus snapshot
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: fuzz-nightly-corpus-${{ matrix.target }}
+          path: tests/fuzz/corpus/${{ matrix.target }}/
+          retention-days: 14
+
+  fuzz-sanitizer:
+    # P4.5 matrix: unsafe-adjacent targets under ASan (spatial/temporal, with
+    # default LSan leak detection — proven clean on a 200-run loop, so a leak
+    # report is signal, not GC noise) and MSan (uninit reads). `-s none`
+    # remains the baseline on every other schedule. UBSan has no cargo-fuzz
+    # spelling (0.13.2 offers address, leak, memory, thread, none);
+    # integer/bounds classes are covered by dev-profile overflow-checks +
+    # debug-assertions on all schedules instead. Standalone `-s leak` runs
+    # are excluded as redundant (ASan already runs the leak checker).
+    if: github.event.schedule == '0 7 * * 0' || github.event_name == 'workflow_dispatch'
+    name: Fuzz sanitizer (${{ matrix.target }}, -s ${{ matrix.sanitizer }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: vm-implied
+            sanitizer: address
+            seconds: 1800
+          - target: cli-exec
+            sanitizer: address
+            seconds: 1800
+          - target: vm-implied
+            sanitizer: memory
+            seconds: 1800
+          - target: source-bytes
+            sanitizer: memory
+            seconds: 1800
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with rust-src
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: rust-src
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-fuzz
+        uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
+        with:
+          crate: cargo-fuzz
+
+      - name: Sync regression seeds into corpora
+        run: cd tests/fuzz && ./sync-seeds.sh
+
+      - name: Fuzz ${{ matrix.target }} under -s ${{ matrix.sanitizer }}
+        run: cd tests/fuzz && cargo fuzz run --dev -s ${{ matrix.sanitizer }} ${{ matrix.target }} -- -max_total_time=${{ matrix.seconds }} -print_final_stats=1
+
+      - name: Upload sanitizer artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: fuzz-sanitizer-${{ matrix.sanitizer }}-${{ matrix.target }}
+          path: tests/fuzz/artifacts/
+          retention-days: 30
+
+  fuzz-coverage:
+    if: github.event.schedule == '0 6 * * 0' || github.event_name == 'workflow_dispatch'
+    name: Fuzz weekly coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      RUSTUP_TOOLCHAIN: nightly-2026-10-01
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Rust nightly with rust-src and llvm-tools
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # pinned nightly
+        with:
+          toolchain: nightly-2026-10-01
+          components: rust-src, llvm-tools
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Install cargo-fuzz
+        uses: baptiste0928/cargo-install@8195d4f734a149db85385bb4102b42efcd373759 # v3.5.0
+        with:
+          crate: cargo-fuzz
+
+      - name: Sync regression seeds into corpora
+        run: cd tests/fuzz && ./sync-seeds.sh
+
+      - name: Coverage ratchet per target (P4.6 gate)
+        run: |
+          cd tests/fuzz
+          ./pipeline/coverage-gate.py
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        with:
+          name: fuzz-weekly-coverage
+          path: tests/fuzz/coverage/
+          retention-days: 30

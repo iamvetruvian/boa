@@ -592,6 +592,25 @@ impl Context {
         }
     }
 
+    /// Whether the binding `find_runtime_binding` just resolved is known to
+    /// exist, without performing any additional observable lookup.
+    ///
+    /// Call this immediately after `find_runtime_binding` on a compile-time
+    /// locator. `find_runtime_binding` resolves to an object environment
+    /// only after its own `HasProperty` probe succeeds, so that case is
+    /// already proven and must not be probed again (a second `has` trap
+    /// would be observable on proxies); every other scope is checked
+    /// directly, which is side-effect free for declarative scopes and a
+    /// plain lookup on the global object.
+    pub(crate) fn is_found_binding(&mut self, locator: &BindingLocator) -> JsResult<bool> {
+        if let BindingLocatorScope::Stack(index) = locator.scope()
+            && let Environment::Object(_) = self.environment_expect(index)
+        {
+            return Ok(true);
+        }
+        self.is_initialized_binding(locator)
+    }
+
     pub(crate) fn is_deleted_binding(&self, locator: &BindingLocator) -> bool {
         match locator.scope() {
             BindingLocatorScope::Stack(index) => matches!(

@@ -133,7 +133,7 @@ impl fmt::Debug for GcHeader {
 }
 
 #[cfg(test)]
-mod tests {
+mod miri {
     use super::*;
 
     #[test]
@@ -216,5 +216,91 @@ mod tests {
         // Corrupt the state to bypass the cap.
         header.non_root_count.set(2);
         header.inc_non_root_count(); // triggers debug_assert_eq!
+    }
+}
+
+/// Kani proofs for the header counting protocol (P6.4b).
+///
+/// What is proven: the saturation cap keeps `non_root <= ref` from any
+/// reset state (the anti-UAF property the mark phase relies on), and the
+/// mark bit is orthogonal to the counters.
+///
+/// Bounds: op sequences are bounded (at most 8 ops; `--unwind` 8, set per
+/// harness). The ref-overflow panic at `NON_ROOTS_MAX` needs 2^31 increments
+/// and is covered by review + the `inc_ref_panics` unit test instead.
+///
+/// `dec_ref_count` is deliberately excluded from the invariant harness:
+/// sweep-phase drops (`lib.rs:486-489`) legitimately precede the next reset
+/// (`lib.rs:476,501`), so `ref < non_root` is transiently reachable there —
+/// but `is_rooted` is only read in the mark phase (`lib.rs:335,369`), where
+/// ref counts are stable ("cannot drop any node", `lib.rs:302,312,333`).
+/// Run with `cargo kani -p boa_gc --harness kani_header_*`.
+#[cfg(kani)]
+mod kani_headers {
+    use super::GcHeader;
+
+    /// The cap is exact: `m` increments from reset land at `min(m, ref)`.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn kani_header_cap_exact() {
+        let header = GcHeader::new();
+        let k: u8 = kani::any();
+        kani::assume(k < 4);
+        for _ in 0..k {
+            header.inc_ref_count();
+        }
+        let reference = 1 + u32::from(k);
+
+        let m: u8 = kani::any();
+        kani::assume(m <= 7);
+        for _ in 0..m {
+            header.inc_non_root_count();
+        }
+        let expected = u32::from(m).min(reference);
+        kani::assert(
+            header.non_root_count() == expected,
+            "cap lands at min(increments, ref)",
+        );
+        kani::assert(
+            header.non_root_count() <= header.ref_count(),
+            "non_root never exceeds ref",
+        );
+        kani::assert(
+            header.is_rooted() == (header.non_root_count() < header.ref_count()),
+            "rootedness matches counts",
+        );
+    }
+
+    /// Counters and mark bit evolve orthogonally over arbitrary op sequences
+    /// (no drops: see the module docs for why `dec_ref_count` is excluded).
+    #[kani::proof]
+    #[kani::unwind(9)]
+    fn kani_header_mark_orthogonal() {
+        let header = GcHeader::new();
+        let mut marked = false;
+        for _ in 0..8 {
+            match kani::any::<u8>() % 5 {
+                0 => header.inc_ref_count(),
+                1 => header.inc_non_root_count(),
+                2 => header.reset_non_root_count(),
+                3 => {
+                    header.mark();
+                    marked = true;
+                }
+                _ => {
+                    header.unmark();
+                    marked = false;
+                }
+            }
+            kani::assert(
+                header.non_root_count() <= header.ref_count(),
+                "non_root never exceeds ref",
+            );
+            kani::assert(header.is_marked() == marked, "ghost mark matches");
+            kani::assert(
+                header.is_rooted() == (header.non_root_count() < header.ref_count()),
+                "rootedness matches counts",
+            );
+        }
     }
 }

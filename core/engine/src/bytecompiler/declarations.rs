@@ -431,7 +431,11 @@ impl ByteCompiler<'_> {
         functions_to_initialize.reverse();
 
         // 9. Let declaredVarNames be a new empty List.
+        // The spec List is ordered (source order); step 17 creates the
+        // global bindings in that order, which fixes their enumeration
+        // order on the global object. The set dedups, the vec orders.
         let mut declared_var_names = FxHashSet::default();
+        let mut declared_var_order = Vec::new();
 
         // 10. For each element d of varDeclarations, do
         //     a. If d is either a VariableDeclaration, a ForBinding, or a BindingIdentifier, then
@@ -453,7 +457,9 @@ impl ByteCompiler<'_> {
 
                     // c. If declaredVarNames does not contain vn, then
                     // i. Append vn to declaredVarNames.
-                    declared_var_names.insert(name);
+                    if declared_var_names.insert(name) {
+                        declared_var_order.push(name);
+                    }
                 }
             }
         }
@@ -545,7 +551,7 @@ impl ByteCompiler<'_> {
         // 17 is done in `Context::global_declaration_instantiation
 
         // 17. For each String vn of declaredVarNames, do
-        for var in declared_var_names {
+        for var in declared_var_order {
             let index = self.get_or_insert_name(var);
             self.global_vars.push(index);
 
@@ -702,7 +708,10 @@ impl ByteCompiler<'_> {
         }
 
         // 12. Let declaredVarNames be a new empty List.
+        // Ordered like the global path: global eval creates its bindings
+        // in this order, fixing their enumeration order.
         let mut declared_var_names = FxHashSet::default();
+        let mut declared_var_order = Vec::new();
 
         // 13. For each element d of varDeclarations, do
         for declaration in var_declarations {
@@ -725,7 +734,9 @@ impl ByteCompiler<'_> {
 
                     // b. If declaredVarNames does not contain vn, then
                     // i. Append vn to declaredVarNames.
-                    declared_var_names.insert(name);
+                    if declared_var_names.insert(name) {
+                        declared_var_order.push(name);
+                    }
                 }
             }
         }
@@ -839,7 +850,7 @@ impl ByteCompiler<'_> {
         }
 
         // 18. For each String vn of declaredVarNames, do
-        for name in declared_var_names {
+        for name in declared_var_order {
             // a. If varEnv is a Global Environment Record, then
             if var_env.is_global() {
                 let index = self.get_or_insert_name(name);

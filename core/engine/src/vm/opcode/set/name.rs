@@ -83,17 +83,35 @@ impl SetNameByLocator {
     pub(crate) fn operation(value: RegisterOperand, context: &mut Context) -> JsResult<()> {
         let frame = context.vm.frame_mut();
         let strict = frame.code_block.strict();
-        let mut binding_locator = frame
+        let captured = frame
             .binding_stack
             .pop()
             .js_expect("locator should have been popped before")?;
         let value = context.vm.get_register(value.into()).clone();
+
+        // `PutValue` judges resolvability when the reference is created, so
+        // snapshot that verdict before any re-resolution below can change
+        // the locator. Declarative bindings cannot come into existence
+        // silently (storing to one throws first), so only object
+        // environments need the capture-time check.
+        let created_unresolvable =
+            strict && !captured.initialized && is_object_environment(&captured.locator, context);
+        let mut binding_locator = captured.locator;
 
         if context.is_deleted_binding(&binding_locator) {
             context.find_runtime_binding(&mut binding_locator)?;
         }
 
         verify_initialized(&binding_locator, context)?;
+
+        // The binding exists now (verified above) but did not when the
+        // reference was created: the right-hand side created it.
+        if created_unresolvable {
+            let name = binding_locator.name().to_std_string_escaped();
+            return Err(JsNativeError::reference()
+                .with_message(format!("{name} is not defined"))
+                .into());
+        }
 
         context.set_binding(&binding_locator, value.clone(), strict)?;
 
@@ -105,6 +123,18 @@ impl Operation for SetNameByLocator {
     const NAME: &'static str = "SetNameByLocator";
     const INSTRUCTION: &'static str = "INST - SetNameByLocator";
     const COST: u8 = 4;
+}
+
+/// Checks that the binding pointed by `locator` lives in an object
+/// environment (the global object or a `with` environment).
+fn is_object_environment(locator: &BindingLocator, context: &Context) -> bool {
+    match locator.scope() {
+        BindingLocatorScope::GlobalObject => true,
+        BindingLocatorScope::GlobalDeclarative => false,
+        BindingLocatorScope::Stack(index) => {
+            matches!(context.environment_expect(index), Environment::Object(_))
+        }
+    }
 }
 
 /// Checks that the binding pointed by `locator` exists and is initialized.

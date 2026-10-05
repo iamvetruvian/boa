@@ -474,12 +474,14 @@ impl Promise {
         &self.state
     }
 
-    /// [`Promise.try ( callbackfn, ...args )`][spec]
+    /// [`Promise.try ( callback, ...args )`][spec]
     ///
-    /// Calls the given function and returns a new promise that is resolved if the function
-    /// completes normally and rejected if it throws.
+    /// Calls the given function: if it throws, returns a new promise rejected
+    /// with the error; otherwise returns the result resolved through
+    /// `PromiseResolve`, which passes promises of the same constructor
+    /// through unwrapped.
     ///
-    /// [spec]: https://tc39.es/proposal-promise-try/#sec-promise.try
+    /// [spec]: https://tc39.es/ecma262/#sec-promise.try
     pub(crate) fn r#try(
         this: &JsValue,
         args: &[JsValue],
@@ -488,43 +490,36 @@ impl Promise {
         let callback = args.get_or_undefined(0);
         let callback_args = args.get(1..).unwrap_or(&[]);
 
-        // 1. Let C be the this value.
-        // 2. If C is not an Object, throw a TypeError exception.
-        let c = this.as_object().ok_or_else(|| {
+        // 1. Let ctor be the this value.
+        // 2. If ctor is not an Object, throw a TypeError exception.
+        let ctor = this.as_object().ok_or_else(|| {
             JsNativeError::typ().with_message("Promise.try() called on a non-object")
         })?;
 
-        // 3. Let promiseCapability be ? NewPromiseCapability(C).
-        let promise_capability = PromiseCapability::new(&c, context)?;
-
-        // 4. Let status be Completion(Call(callbackfn, undefined, args)).
+        // 3. Let status be Completion(Call(callback, undefined, args)).
         let status = callback.call(&JsValue::undefined(), callback_args, context);
 
         match status {
-            // 5. If status is an abrupt completion, then
+            // 4. If status is an abrupt completion, then
             Err(err) => {
+                // a. Let promiseCapability be ? NewPromiseCapability(ctor).
+                let promise_capability = PromiseCapability::new(&ctor, context)?;
                 let value = err.into_opaque(context)?;
 
-                // a. Perform ? Call(promiseCapability.[[Reject]], undefined, « status.[[Value]] »).
+                // b. Perform ? Call(promiseCapability.[[Reject]], undefined, « status.[[Value]] »).
                 promise_capability.functions.reject.call(
                     &JsValue::undefined(),
                     &[value],
                     context,
                 )?;
-            }
-            // 6. Else,
-            Ok(value) => {
-                // a. Perform ? Call(promiseCapability.[[Resolve]], undefined, « status.[[Value]] »).
-                promise_capability.functions.resolve.call(
-                    &JsValue::undefined(),
-                    &[value],
-                    context,
-                )?;
-            }
-        }
 
-        // 7. Return promiseCapability.[[Promise]].
-        Ok(promise_capability.promise.clone().into())
+                // c. Return promiseCapability.[[Promise]].
+                Ok(promise_capability.promise.clone().into())
+            }
+            // 5. Else,
+            // a. Return ? PromiseResolve(ctor, status.[[Value]]).
+            Ok(value) => Self::promise_resolve(&ctor, value, context).map(JsValue::from),
+        }
     }
 
     /// [`Promise.withResolvers ( )`][spec]

@@ -940,103 +940,203 @@ macro_rules! assert_type {
     };
 }
 
-#[test]
-fn null() {
-    let v = NanBoxedValue::null();
-    assert_type!(v is null);
-}
+#[cfg(test)]
+mod miri {
+    use super::*;
 
-#[test]
-fn undefined() {
-    let v = NanBoxedValue::undefined();
-    assert_type!(v is undefined);
-}
-
-#[test]
-fn boolean() {
-    let v = NanBoxedValue::boolean(true);
-    assert_type!(v is bool(true));
-
-    let v = NanBoxedValue::boolean(false);
-    assert_type!(v is bool(false));
-}
-
-#[test]
-fn integer() {
-    fn assert_integer(i: i32) {
-        let v = NanBoxedValue::integer32(i);
-        assert_type!(v is integer(i));
+    #[test]
+    fn null() {
+        let v = NanBoxedValue::null();
+        assert_type!(v is null);
     }
 
-    assert_integer(0);
-    assert_integer(1);
-    assert_integer(-1);
-    assert_integer(42);
-    assert_integer(-42);
-    assert_integer(i32::MAX);
-    assert_integer(i32::MIN);
-    assert_integer(i32::MAX - 1);
-    assert_integer(i32::MIN + 1);
-}
-
-#[test]
-#[allow(clippy::float_cmp)]
-fn float() {
-    fn assert_float(f: f64) {
-        let v = NanBoxedValue::float64(f);
-        assert_type!(v is float(f));
+    #[test]
+    fn undefined() {
+        let v = NanBoxedValue::undefined();
+        assert_type!(v is undefined);
     }
 
-    assert_float(0.0);
-    assert_float(-0.0);
-    assert_float(0.1 + 0.2);
-    assert_float(-42.123);
-    assert_float(f64::INFINITY);
-    assert_float(f64::NEG_INFINITY);
+    #[test]
+    fn boolean() {
+        let v = NanBoxedValue::boolean(true);
+        assert_type!(v is bool(true));
 
-    // Some edge cases around zeroes.
-    let neg_zero = NanBoxedValue::float64(-0.0);
-    assert!(neg_zero.as_float64().unwrap().is_sign_negative());
-    assert_eq!(0.0f64, neg_zero.as_float64().unwrap());
+        let v = NanBoxedValue::boolean(false);
+        assert_type!(v is bool(false));
+    }
 
-    let pos_zero = NanBoxedValue::float64(0.0);
-    assert!(!pos_zero.as_float64().unwrap().is_sign_negative());
-    assert_eq!(0.0f64, pos_zero.as_float64().unwrap());
+    #[test]
+    fn integer() {
+        fn assert_integer(i: i32) {
+            let v = NanBoxedValue::integer32(i);
+            assert_type!(v is integer(i));
+        }
 
-    assert_eq!(pos_zero.as_float64(), neg_zero.as_float64());
+        assert_integer(0);
+        assert_integer(1);
+        assert_integer(-1);
+        assert_integer(42);
+        assert_integer(-42);
+        assert_integer(i32::MAX);
+        assert_integer(i32::MIN);
+        assert_integer(i32::MAX - 1);
+        assert_integer(i32::MIN + 1);
+    }
 
-    let nan = NanBoxedValue::float64(f64::NAN);
-    assert_type!(nan is nan);
+    #[test]
+    #[allow(clippy::float_cmp)]
+    fn float() {
+        fn assert_float(f: f64) {
+            let v = NanBoxedValue::float64(f);
+            assert_type!(v is float(f));
+        }
+
+        assert_float(0.0);
+        assert_float(-0.0);
+        assert_float(0.1 + 0.2);
+        assert_float(-42.123);
+        assert_float(f64::INFINITY);
+        assert_float(f64::NEG_INFINITY);
+
+        // Some edge cases around zeroes.
+        let neg_zero = NanBoxedValue::float64(-0.0);
+        assert!(neg_zero.as_float64().unwrap().is_sign_negative());
+        assert_eq!(0.0f64, neg_zero.as_float64().unwrap());
+
+        let pos_zero = NanBoxedValue::float64(0.0);
+        assert!(!pos_zero.as_float64().unwrap().is_sign_negative());
+        assert_eq!(0.0f64, pos_zero.as_float64().unwrap());
+
+        assert_eq!(pos_zero.as_float64(), neg_zero.as_float64());
+
+        let nan = NanBoxedValue::float64(f64::NAN);
+        assert_type!(nan is nan);
+    }
+
+    #[test]
+    fn bigint() {
+        let bigint = JsBigInt::from(42);
+        let v = NanBoxedValue::bigint(bigint.clone());
+        assert_type!(v is bigint(bigint));
+    }
+
+    #[test]
+    fn object() {
+        let object = JsObject::with_null_proto();
+        let v = NanBoxedValue::object(object.clone());
+        assert_type!(v is object(object));
+    }
+
+    #[test]
+    fn string() {
+        let str = crate::js_string!("Hello World");
+        let v = NanBoxedValue::string(str.clone());
+        assert_type!(v is string(str));
+    }
+
+    #[test]
+    fn symbol() {
+        let sym = JsSymbol::new(Some(JsString::from("Hello World"))).unwrap();
+        let v = NanBoxedValue::symbol(sym.clone());
+        assert_type!(v is symbol(sym));
+
+        let sym = JsSymbol::new(None).unwrap();
+        let v = NanBoxedValue::symbol(sym.clone());
+        assert_type!(v is symbol(sym));
+    }
 }
 
-#[test]
-fn bigint() {
-    let bigint = JsBigInt::from(42);
-    let v = NanBoxedValue::bigint(bigint.clone());
-    assert_type!(v is bigint(bigint));
-}
+/// Kani proofs for the NaN-boxing codec (P6.4a).
+///
+/// Bounds: the codec is loop-free straight-line bit manipulation over `u64`,
+/// so these proofs are complete — no unwinding bounds, no residual input
+/// space. Run with `cargo kani -p boa_engine --harness kani_codec_*`.
+#[cfg(kani)]
+mod kani_codec {
+    use super::bits;
 
-#[test]
-fn object() {
-    let object = JsObject::with_null_proto();
-    let v = NanBoxedValue::object(object.clone());
-    assert_type!(v is object(object));
-}
+    /// Counts how many kind classifiers fire for a tagged value.
+    fn kind_count(tagged: u64) -> u32 {
+        let mut n = 0;
+        if bits::is_float(tagged) {
+            n += 1;
+        }
+        if bits::is_integer32(tagged) {
+            n += 1;
+        }
+        if bits::is_bigint(tagged) {
+            n += 1;
+        }
+        if bits::is_object(tagged) {
+            n += 1;
+        }
+        if bits::is_symbol(tagged) {
+            n += 1;
+        }
+        if bits::is_string(tagged) {
+            n += 1;
+        }
+        // No `is_boolean`/`is_other` predicates exist; compare kinds directly.
+        if tagged & bits::MASK_KIND == bits::MASK_BOOLEAN {
+            n += 1;
+        }
+        if tagged & bits::MASK_KIND == bits::MASK_OTHER {
+            n += 1;
+        }
+        n
+    }
 
-#[test]
-fn string() {
-    let str = crate::js_string!("Hello World");
-    let v = NanBoxedValue::string(str.clone());
-    assert_type!(v is string(str));
-}
+    #[kani::proof]
+    fn kani_codec_i32_roundtrip() {
+        let x: i32 = kani::any();
+        let tagged = bits::tag_i32(x);
+        kani::assert(bits::untag_i32(tagged) == x, "i32 round-trip");
+        kani::assert(bits::is_integer32(tagged), "i32 kind");
+        kani::assert(kind_count(tagged) == 1, "i32 classified exactly once");
+    }
 
-#[test]
-fn symbol() {
-    let sym = JsSymbol::new(Some(JsString::from("Hello World"))).unwrap();
-    let v = NanBoxedValue::symbol(sym.clone());
-    assert_type!(v is symbol(sym));
+    #[kani::proof]
+    fn kani_codec_bool_roundtrip() {
+        let b: bool = kani::any();
+        let tagged = bits::tag_bool(b);
+        kani::assert(bits::untag_bool(tagged) == b, "bool round-trip");
+        kani::assert(tagged & bits::MASK_KIND == bits::MASK_BOOLEAN, "bool kind");
+        kani::assert(kind_count(tagged) == 1, "bool classified exactly once");
+    }
 
-    let sym = JsSymbol::new(None).unwrap();
-    let v = NanBoxedValue::symbol(sym.clone());
-    assert_type!(v is symbol(sym));
+    #[kani::proof]
+    fn kani_codec_f64_canonical() {
+        let v: f64 = kani::any();
+        let tagged = bits::tag_f64(v);
+        if v.is_nan() {
+            kani::assert(tagged == f64::NAN.to_bits(), "NaN canonicalizes");
+        } else {
+            kani::assert(tagged == v.to_bits(), "non-NaN bit-exact");
+            kani::assert(f64::from_bits(tagged) == v, "non-NaN round-trip");
+        }
+        kani::assert(bits::is_float(tagged), "tagged f64 is float");
+        kani::assert(kind_count(tagged) == 1, "f64 classified exactly once");
+    }
+
+    #[kani::proof]
+    fn kani_codec_pointer_roundtrip() {
+        use std::ptr::NonNull;
+
+        let addr: u64 = kani::any();
+        // `tag_pointer` panics when the address escapes the 48-bit payload
+        // (unsupported platform); constrain to well-behaved platforms.
+        // The null address cannot form a `NonNull`.
+        kani::assume(addr != 0 && addr < (1u64 << 48));
+        let ptr = NonNull::new(addr as *mut u8).unwrap();
+        let tagged = bits::tag_pointer(ptr, bits::MASK_OBJECT);
+        kani::assert(
+            bits::untag_pointer(tagged) as u64 == addr,
+            "pointer round-trip",
+        );
+        kani::assert(
+            tagged & bits::MASK_KIND == bits::MASK_OBJECT,
+            "pointer kind preserved",
+        );
+        kani::assert(kind_count(tagged) == 1, "pointer classified exactly once");
+    }
 }

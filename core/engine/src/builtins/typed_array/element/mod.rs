@@ -388,3 +388,165 @@ element!(
     to_be: |this: f64| f64::from_bits(this.to_bits().to_be()),
     to_le: |this: f64| f64::from_bits(this.to_bits().to_le()),
 );
+
+#[cfg(test)]
+mod miri {
+    use portable_atomic::AtomicU8;
+    use std::sync::atomic::Ordering;
+
+    use super::*;
+    use crate::builtins::{
+        array_buffer::utils::{SliceRef, SliceRefMut},
+        typed_array::{TypedArrayElement, TypedArrayKind},
+    };
+
+    /// 8-byte-aligned plain storage: satisfies the size+alignment contract
+    /// of every element type (max size/align 8).
+    #[repr(align(8))]
+    struct Plain8([u8; 8]);
+
+    /// 8-byte-aligned shared storage.
+    #[repr(align(8))]
+    struct Shared8([AtomicU8; 8]);
+
+    fn shared8() -> Shared8 {
+        Shared8(std::array::from_fn(|_| AtomicU8::new(0)))
+    }
+
+    /// Drives `Element::read`/`read_mut` + `SliceRef(Mut)::get/set_value`
+    /// for one element type over plain and shared storage.
+    macro_rules! roundtrip {
+        ($t:ty, $sample:expr, $kind:expr, $elem:expr) => {{
+            // Plain buffer.
+            let mut plain = Plain8([0; 8]);
+            // SAFETY: 8 aligned bytes; every element fits.
+            unsafe {
+                ElementRefMut::store(
+                    &mut <$t>::read_mut(SliceRefMut::Slice(&mut plain.0)),
+                    $sample,
+                    Ordering::Relaxed,
+                );
+                let loaded = <$t>::read(SliceRef::Slice(&plain.0)).load(Ordering::Relaxed);
+                assert_eq!(<$t>::to_plain(loaded), <$t>::to_plain($sample));
+            }
+            // Shared buffer.
+            let shared = shared8();
+            // SAFETY: 8 aligned bytes; every element fits.
+            unsafe {
+                ElementRefMut::store(
+                    &mut <$t>::read_mut(SliceRefMut::AtomicSlice(&shared.0)),
+                    $sample,
+                    Ordering::SeqCst,
+                );
+                let loaded = <$t>::read(SliceRef::AtomicSlice(&shared.0)).load(Ordering::SeqCst);
+                assert_eq!(<$t>::to_plain(loaded), <$t>::to_plain($sample));
+            }
+            // `get_value`/`set_value` dispatch.
+            let mut plain = Plain8([0; 8]);
+            let shared = shared8();
+            // SAFETY: 8 aligned bytes; every element fits.
+            unsafe {
+                SliceRefMut::Slice(&mut plain.0).set_value($elem, Ordering::Relaxed);
+                let back = SliceRef::Slice(&plain.0).get_value($kind, Ordering::Relaxed);
+                assert_eq!(back.to_bits(), $elem.to_bits());
+
+                SliceRefMut::AtomicSlice(&shared.0).set_value($elem, Ordering::SeqCst);
+                let back = SliceRef::AtomicSlice(&shared.0).get_value($kind, Ordering::SeqCst);
+                assert_eq!(back.to_bits(), $elem.to_bits());
+            }
+        }};
+    }
+
+    #[test]
+    fn element_int_roundtrip() {
+        roundtrip!(
+            u8,
+            0xA5,
+            TypedArrayKind::Uint8,
+            TypedArrayElement::Uint8(0xA5)
+        );
+        roundtrip!(i8, -42, TypedArrayKind::Int8, TypedArrayElement::Int8(-42));
+        roundtrip!(
+            u16,
+            0xBEEF,
+            TypedArrayKind::Uint16,
+            TypedArrayElement::Uint16(0xBEEF)
+        );
+        roundtrip!(
+            i16,
+            -12345,
+            TypedArrayKind::Int16,
+            TypedArrayElement::Int16(-12345)
+        );
+        roundtrip!(
+            u32,
+            0xDEAD_BEEF,
+            TypedArrayKind::Uint32,
+            TypedArrayElement::Uint32(0xDEAD_BEEF)
+        );
+        roundtrip!(
+            i32,
+            -123_456_789,
+            TypedArrayKind::Int32,
+            TypedArrayElement::Int32(-123_456_789)
+        );
+        roundtrip!(
+            u64,
+            0x0123_4567_89AB_CDEF,
+            TypedArrayKind::BigUint64,
+            TypedArrayElement::BigUint64(0x0123_4567_89AB_CDEF)
+        );
+        roundtrip!(
+            i64,
+            -9_876_543_210_976,
+            TypedArrayKind::BigInt64,
+            TypedArrayElement::BigInt64(-9_876_543_210_976)
+        );
+        roundtrip!(
+            ClampedU8,
+            ClampedU8(200),
+            TypedArrayKind::Uint8Clamped,
+            TypedArrayElement::Uint8Clamped(ClampedU8(200))
+        );
+    }
+
+    #[test]
+    fn element_float_roundtrip() {
+        roundtrip!(
+            f32,
+            -1.5,
+            TypedArrayKind::Float32,
+            TypedArrayElement::Float32(-1.5)
+        );
+        roundtrip!(
+            f32,
+            f32::from_bits(0x7FC0_0001),
+            TypedArrayKind::Float32,
+            TypedArrayElement::Float32(f32::from_bits(0x7FC0_0001))
+        );
+        roundtrip!(
+            f64,
+            1e300,
+            TypedArrayKind::Float64,
+            TypedArrayElement::Float64(1e300)
+        );
+        roundtrip!(
+            f64,
+            f64::from_bits(0xFFF8_0000_0000_0001),
+            TypedArrayKind::Float64,
+            TypedArrayElement::Float64(f64::from_bits(0xFFF8_0000_0000_0001))
+        );
+    }
+
+    #[cfg(feature = "float16")]
+    #[test]
+    fn element_float16_roundtrip() {
+        let one = Float16(float16::f16::from_bits(0x3C00));
+        roundtrip!(
+            Float16,
+            one,
+            TypedArrayKind::Float16,
+            TypedArrayElement::Float16(one)
+        );
+    }
+}

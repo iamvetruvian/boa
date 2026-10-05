@@ -9,6 +9,8 @@ use rustc_hash::FxHashSet;
 use std::sync::Arc;
 
 mod from;
+#[cfg(test)]
+mod tests;
 mod to;
 
 /// Convenience method to avoid copy-pasting the same message.

@@ -1,0 +1,16 @@
+[package]
+name = "boa_regression"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Executable regression database: every fixed bug keeps a reproducer that must stay green."
+
+[dev-dependencies]
+boa_engine.workspace = true
+serde = { workspace = true, features = ["derive"] }
+toml.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,31 @@
+# Logic drill inventory (P4 validation gate): three landed fixes whose
+# reintroduction the semantic oracles must flag.
+#
+# Each entry: a breaking patch (applies cleanly onto the fixed tree and
+# reintroduces the bug; `git apply -R` restores the fix) plus a plain,
+# self-printing probe whose Boa-vs-oracle comparison must AGREE on the
+# fixed tree and DIVERGE on the broken tree.
+#
+# Fields:
+#   id      regression-DB id (must be `status = "landed"`)
+#   patch   breaking patch, repo-relative to tests/fuzz/drill/logic/
+#   probe   plain probe program, repo-relative to tests/fuzz/drill/logic/
+#   oracle  oracle shell (jsshell default; node when the feature needs it)
+
+[[entry]]
+id = "try-finally-pending-return"
+patch = "patches/try-finally-pending-return.break.patch"
+probe = "probes/try-finally-pending-return.js"
+oracle = "jsshell"
+
+[[entry]]
+id = "string-tonumber-signed-infinity"
+patch = "patches/string-tonumber-signed-infinity.break.patch"
+probe = "probes/string-tonumber-signed-infinity.js"
+oracle = "jsshell"
+
+[[entry]]
+id = "typedarray-no-global"
+patch = "patches/typedarray-no-global.break.patch"
+probe = "probes/typedarray-no-global.js"
+oracle = "jsshell"

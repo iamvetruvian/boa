@@ -4,6 +4,7 @@ mod allocation;
 mod cell;
 mod erased;
 mod std_types;
+mod stress;
 mod weak;
 mod weak_map;
 

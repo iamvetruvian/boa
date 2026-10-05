@@ -1,0 +1,212 @@
+diff --git b/core/parser/Cargo.toml a/core/parser/Cargo.toml
+index 0dcfaff4..dc41be08 100644
+--- b/core/parser/Cargo.toml
++++ a/core/parser/Cargo.toml
+@@ -21,7 +21,6 @@ bitflags.workspace = true
+ num-bigint.workspace = true
+ regress.workspace = true
+ icu_properties.workspace = true
+-stacker.workspace = true
+ 
+ [dev-dependencies]
+ indoc.workspace = true
+diff --git b/core/parser/src/parser/cursor/mod.rs a/core/parser/src/parser/cursor/mod.rs
+index 8703bcf4..8798bd4a 100644
+--- b/core/parser/src/parser/cursor/mod.rs
++++ a/core/parser/src/parser/cursor/mod.rs
+@@ -7,7 +7,7 @@ use crate::{
+     parser::{OrAbrupt, ParseResult},
+     source::ReadChar,
+ };
+-use boa_ast::{LinearPosition, Position, PositionGroup, Punctuator, Spanned};
++use boa_ast::{LinearPosition, PositionGroup, Punctuator, Spanned};
+ use boa_interner::Interner;
+ use buffered_lexer::BufferedLexer;
+ 
+@@ -313,38 +313,3 @@ where
+         self.buffered_lexer.take_source()
+     }
+ }
+-
+-/// Minimum remaining native stack (in bytes) required to continue parsing.
+-///
+-/// One expression-cascade level costs ~150 `KiB` of stack in unoptimized
+-/// builds; checks interleave the descent (primary, assignment,
+-/// exponentiation, unary, member, …) so the largest unchecked burst is a
+-/// few cascade frames, and this reserve covers it several times over.
+-pub(super) const STACK_RED_ZONE: usize = 256 * 1024;
+-
+-/// Fail with a catchable parse error when the remaining native stack is
+-/// inside the red zone (bug #22: deep syntactic nesting used to abort
+-/// the process with a stack overflow).
+-///
+-/// A free function (rather than a `Cursor` method) so call sites can invoke
+-/// it while a peeked token still borrows the cursor.
+-///
+-/// Every unbounded recursion cycle of the grammar (expression cascade,
+-/// statements, binding patterns, and the directly self-recursive unary /
+-/// assignment / exponentiation / member parsers) passes through one of the
+-/// callers of this check, so tripping it bounds the accepted nesting
+-/// depth — and therefore the depth of every downstream recursive walk
+-/// (scope analysis, compilation, printing), which all run on smaller
+-/// frames than the parse itself.
+-///
+-/// The effective depth adapts to the stack and profile (like
+-/// SpiderMonkey/V8, which throw a catchable error instead of aborting),
+-/// so only clearly-shallow inputs (must parse) and clearly-absurd ones
+-/// (must error) are asserted anywhere. Platforms that cannot report the
+-/// remaining stack (`None`: wasm, Miri) keep the historical behavior.
+-pub(super) fn check_stack(position: Position) -> ParseResult<()> {
+-    if stacker::remaining_stack().is_some_and(|left| left < STACK_RED_ZONE) {
+-        return Err(Error::general("Maximum call stack size exceeded", position));
+-    }
+-    Ok(())
+-}
+diff --git b/core/parser/src/parser/expression/assignment/exponentiation.rs a/core/parser/src/parser/expression/assignment/exponentiation.rs
+index 3e710f61..b5a206fe 100644
+--- b/core/parser/src/parser/expression/assignment/exponentiation.rs
++++ a/core/parser/src/parser/expression/assignment/exponentiation.rs
+@@ -11,7 +11,6 @@ use crate::{
+     lexer::TokenKind,
+     parser::{
+         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{
+             FormalParameterListOrExpression, unary::UnaryExpression, update::UpdateExpression,
+         },
+@@ -19,7 +18,7 @@ use crate::{
+     source::ReadChar,
+ };
+ use boa_ast::{
+-    Keyword, Punctuator, Spanned,
++    Keyword, Punctuator,
+     expression::operator::{Binary, binary::ArithmeticOp},
+ };
+ use boa_interner::Interner;
+@@ -60,7 +59,6 @@ where
+ 
+     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
+         let next = cursor.peek(0, interner).or_abrupt()?;
+-        check_stack(next.span().start())?;
+         match next.kind() {
+             TokenKind::Keyword((Keyword::Delete | Keyword::Void | Keyword::TypeOf, _))
+             | TokenKind::Punctuator(
+diff --git b/core/parser/src/parser/expression/assignment/mod.rs a/core/parser/src/parser/expression/assignment/mod.rs
+index 5752b8af..8fbfcb08 100644
+--- b/core/parser/src/parser/expression/assignment/mod.rs
++++ a/core/parser/src/parser/expression/assignment/mod.rs
+@@ -18,7 +18,6 @@ use crate::{
+     lexer::{Error as LexError, InputElement, TokenKind},
+     parser::{
+         AllowAwait, AllowIn, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{
+             FormalParameterListOrExpression,
+             assignment::{
+@@ -91,10 +90,6 @@ where
+     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Expression> {
+         cursor.set_goal(InputElement::RegExp);
+ 
+-        // Peeked twice (buffered); the first peek positions the stack check.
+-        let token_start = cursor.peek(0, interner).or_abrupt()?.span().start();
+-        check_stack(token_start)?;
+-
+         match cursor.peek(0, interner).or_abrupt()?.kind() {
+             // [+Yield]YieldExpression[?In, ?Await]
+             TokenKind::Keyword((Keyword::Yield, _)) if self.allow_yield.0 => {
+diff --git b/core/parser/src/parser/expression/left_hand_side/member.rs a/core/parser/src/parser/expression/left_hand_side/member.rs
+index 78a5403f..a06f8830 100644
+--- b/core/parser/src/parser/expression/left_hand_side/member.rs
++++ a/core/parser/src/parser/expression/left_hand_side/member.rs
+@@ -11,7 +11,6 @@ use crate::{
+     lexer::{InputElement, TokenKind, token::ContainsEscapeSequence},
+     parser::{
+         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{
+             Expression, FormalParameterListOrExpression,
+             left_hand_side::template::TaggedTemplateLiteral, primary::PrimaryExpression,
+@@ -66,7 +65,6 @@ where
+ 
+         let token = cursor.peek(0, interner).or_abrupt()?;
+         let position = token.span().start();
+-        check_stack(position)?;
+         let lhs: FormalParameterListOrExpression = match token.kind() {
+             TokenKind::Keyword((Keyword::New | Keyword::Super | Keyword::Import, true)) => {
+                 return Err(Error::general(
+diff --git b/core/parser/src/parser/expression/primary/mod.rs a/core/parser/src/parser/expression/primary/mod.rs
+index 3a13df26..6b532da2 100644
+--- b/core/parser/src/parser/expression/primary/mod.rs
++++ a/core/parser/src/parser/expression/primary/mod.rs
+@@ -34,7 +34,6 @@ use crate::{
+     },
+     parser::{
+         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{
+             BindingIdentifier, Expression, FormalParameterListOrExpression,
+             identifiers::IdentifierReference, primary::template::TemplateLiteral,
+@@ -99,7 +98,6 @@ where
+         // isn't passed and consumed by parsers according to spec (EX: GeneratorExpression)
+         let tok = cursor.peek(0, interner).or_abrupt()?;
+         let tok_position = tok.span().start();
+-        check_stack(tok_position)?;
+ 
+         match tok.kind() {
+             TokenKind::Keyword((Keyword::This, true))
+diff --git b/core/parser/src/parser/expression/unary.rs a/core/parser/src/parser/expression/unary.rs
+index 06071bab..7b3f5d16 100644
+--- b/core/parser/src/parser/expression/unary.rs
++++ a/core/parser/src/parser/expression/unary.rs
+@@ -12,7 +12,6 @@ use crate::{
+     lexer::{Error as LexError, TokenKind},
+     parser::{
+         AllowAwait, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{
+             FormalParameterListOrExpression, await_expr::AwaitExpression, update::UpdateExpression,
+         },
+@@ -65,7 +64,6 @@ where
+     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
+         let tok = cursor.peek(0, interner).or_abrupt()?;
+         let token_start = tok.span().start();
+-        check_stack(token_start)?;
+         match tok.kind() {
+             TokenKind::Keyword((Keyword::Delete | Keyword::Void | Keyword::TypeOf, true)) => Err(
+                 Error::general("Keyword must not contain escaped characters", token_start),
+diff --git b/core/parser/src/parser/statement/mod.rs a/core/parser/src/parser/statement/mod.rs
+index dee9d7d8..c02d38cd 100644
+--- b/core/parser/src/parser/statement/mod.rs
++++ a/core/parser/src/parser/statement/mod.rs
+@@ -43,7 +43,6 @@ use crate::{
+     lexer::{Error as LexError, InputElement, Token, TokenKind, token::EscapeSequence},
+     parser::{
+         AllowAwait, AllowReturn, AllowYield, Cursor, OrAbrupt, ParseResult, TokenParser,
+-        cursor::check_stack,
+         expression::{BindingIdentifier, Initializer, PropertyName},
+     },
+     source::ReadChar,
+@@ -119,7 +118,6 @@ where
+     fn parse(self, cursor: &mut Cursor<R>, interner: &mut Interner) -> ParseResult<Self::Output> {
+         // TODO: add BreakableStatement and divide Whiles, fors and so on to another place.
+         let tok = cursor.peek(0, interner).or_abrupt()?;
+-        check_stack(tok.span().start())?;
+ 
+         match tok.kind() {
+             TokenKind::Keyword((Keyword::With, _)) => {
+@@ -524,7 +522,6 @@ where
+             )?
+             .span()
+             .start();
+-        check_stack(start)?;
+ 
+         let mut patterns = Vec::new();
+ 
+@@ -773,7 +770,6 @@ where
+             )?
+             .span()
+             .start();
+-        check_stack(start)?;
+ 
+         let mut patterns = Vec::new();
+         let mut last_elision_or_first = true;

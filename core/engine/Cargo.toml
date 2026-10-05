@@ -67,6 +67,15 @@ flowgraph = []
 # Enable Boa's VM instruction tracing.
 trace = ["js"]
 
+# Run the P5.1 bytecode validity checker at the end of every
+# `ByteCompiler::finish` (tests/fuzzers only; never production by default).
+verify-bytecode = []
+
+# P5.4 opcode/operand coverage instrumentation: per-instruction histogram
+# hooks plus the dump API and static opcode enumerator (tests/tools only;
+# never production by default).
+vm-coverage = []
+
 # Enable Boa's additional ECMAScript features for web browsers.
 annex-b = ["boa_ast/annex-b", "boa_parser/annex-b"]
 
@@ -133,6 +142,7 @@ bytemuck = { workspace = true, features = ["derive"] }
 arrayvec.workspace = true
 intrusive-collections.workspace = true
 cfg-if.workspace = true
+stacker.workspace = true
 time.workspace = true
 hashbrown.workspace = true
 either = { workspace = true, optional = true }

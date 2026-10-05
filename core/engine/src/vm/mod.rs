@@ -26,7 +26,7 @@ use crate::sys::time::Instant;
 pub(crate) use opcode::{Instruction, InstructionIterator, Opcode};
 
 pub(crate) use {
-    call_frame::CallFrameFlags,
+    call_frame::{CallFrameFlags, CapturedBinding},
     code_block::{
         CodeBlockFlags, Constant, Handler, create_function_object, create_function_object_fast,
     },
@@ -52,9 +52,25 @@ mod runtime_limits;
 pub(crate) mod opcode;
 pub(crate) mod shadow_stack;
 pub(crate) mod source_info;
+/// Structural bytecode verifier (P5.1). The module is public so fuzzers can
+/// name [`VerifyError`](verify::VerifyError); the checker itself runs through
+/// [`CodeBlock::verify`](code_block::CodeBlock::verify).
+pub mod verify;
+
+/// VM opcode/operand coverage instrumentation (P5.4). The module is public
+/// so out-of-tree measurement tools can call the dump API and the static
+/// opcode enumerator; the hooks themselves run through `execute_one` and
+/// `handle_error`.
+#[cfg(feature = "vm-coverage")]
+pub mod coverage;
 
 #[cfg(feature = "flowgraph")]
 pub mod flowgraph;
+
+/// Direct bytecode differential tests (P5.2). Tests-only: no production
+/// footprint.
+#[cfg(test)]
+mod direct;
 
 #[cfg(test)]
 mod tests;
@@ -100,6 +116,14 @@ pub struct Vm {
     pub(crate) trace: bool,
     #[cfg(feature = "trace")]
     pub(crate) current_frame: Option<*const CallFrame>,
+
+    /// Opcode currently executing, for `vm-coverage` error surfacing.
+    ///
+    /// Set by the pre-handler hook on every instruction; read at
+    /// `handle_error` entry to attribute the `op|err-T` cell. Test-only
+    /// measurement with no production footprint.
+    #[cfg(feature = "vm-coverage")]
+    pub(crate) coverage_current: Option<Opcode>,
 }
 
 /// The stack holds the [`JsValue`]s for the calling convention and registers.
@@ -425,6 +449,8 @@ impl Vm {
             trace: false,
             #[cfg(feature = "trace")]
             current_frame: None,
+            #[cfg(feature = "vm-coverage")]
+            coverage_current: None,
         }
     }
 
@@ -789,18 +815,36 @@ impl Context {
             self.instructions_remaining -= 1;
         }
 
+        #[cfg(feature = "vm-coverage")]
+        let coverage_pc = self.vm.frame().pc as usize;
+        #[cfg(feature = "vm-coverage")]
+        coverage::coverage_pre(self, opcode);
+
         #[cfg(feature = "trace")]
-        if self.vm.trace || self.vm.frame().code_block.traceable() {
+        let result = if self.vm.trace || self.vm.frame().code_block.traceable() {
             self.trace_execute_instruction(f, opcode)
         } else {
             self.execute_instruction(f, opcode)
-        }
+        };
 
         #[cfg(not(feature = "trace"))]
-        self.execute_instruction(f, opcode)
+        let result = self.execute_instruction(f, opcode);
+
+        // Post-handler hook only on `Continue`: on `Break` the frame may be
+        // gone and `pc` is meaningless for branch attribution.
+        #[cfg(feature = "vm-coverage")]
+        if matches!(result, ControlFlow::Continue(())) {
+            coverage::coverage_post(self, opcode, coverage_pc);
+        }
+
+        result
     }
 
     fn handle_error(&mut self, mut err: JsError) -> ControlFlow<CompletionRecord> {
+        #[cfg(feature = "vm-coverage")]
+        if let Some(opcode) = self.vm.coverage_current {
+            coverage::coverage_error(opcode, &err);
+        }
         // Capture the backtrace early, before any exception handler check,
         // so that errors caught by internal handlers (e.g. async module
         // evaluation) still carry source position information.

@@ -1,0 +1,24 @@
+# Fast CI corpus: one Test262 slice + all landed regression repros +
+# the curated adversarial set, each in sloppy and strict variants.
+schema_version = 1
+tool = "boa_differential"
+name = "ci"
+strict_variants = true
+
+[test262]
+root = "test262"
+slices = ["test/language/expressions/assignment"]
+exclude_from_gap_matrix = "docs/conformance-gap.json"
+
+[regression]
+manifest = "tests/regression/regressions.toml"
+all_landed = true
+# Differential-incompatible: these repros pin engine-defined behavior, so no
+# two engines can agree on them. They stay green in the regression DB.
+exclude_ids = [
+  "new-on-non-constructor-message", # asserts Boa's exact error message text
+  "with-call-binding-semantics", # asserts Boa's internal proxy-trap counts
+]
+
+[adversarial]
+dir = "tools/differential/corpora/adversarial"

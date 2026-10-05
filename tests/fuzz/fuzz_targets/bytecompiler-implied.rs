@@ -1,25 +1,27 @@
 #![no_main]
 
-mod common;
-
-use crate::common::FuzzSource;
-use boa_engine::{Context, Script};
-use boa_parser::Source;
+use boa_fuzz::{
+    common::FuzzSource,
+    semantic::{compile_outcome, compile_outcome_stressed},
+};
 use libfuzzer_sys::{fuzz_target, Corpus};
-use std::io::Cursor;
 
 fn do_fuzz(original: FuzzSource) -> Corpus {
-    let mut ctx = Context::builder()
-        .interner(original.interner)
-        .instructions_remaining(0)
-        .build()
-        .unwrap();
-    if let Ok(parsed) = Script::parse(
-        Source::from_reader(Cursor::new(&original.source), None),
-        None,
-        &mut ctx,
-    ) {
-        let _ = parsed.codeblock(&mut ctx);
+    let source = &original.source;
+
+    // Compile twice in fresh contexts: success/failure and the full
+    // disassembly must match (compile determinism), with the second leg
+    // under GC stress (compilation allocates heavily without running user
+    // code, so no timing filter applies). The P5 verifier hook runs inside
+    // `compile_outcome` on every successful compile.
+    let first = compile_outcome(source);
+    let second = compile_outcome_stressed(source);
+    assert_eq!(
+        first, second,
+        "nondeterministic compile.\nSource:\n{source}\nFirst:\n{first:?}\nSecond:\n{second:?}",
+    );
+
+    if first.compiled {
         Corpus::Keep
     } else {
         Corpus::Reject

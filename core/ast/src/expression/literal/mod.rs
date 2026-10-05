@@ -318,7 +318,28 @@ impl ToInternedString for LiteralKind {
             Self::String(st) => {
                 format!("\"{}\"", interner.resolve_expect(st))
             }
-            Self::Num(num) => num.to_string(),
+            Self::Num(num) => {
+                // The JS grammar has no negative or non-finite numeric
+                // literals, so render forms that reparse to the same value:
+                // overflowing literals for infinities (`1e999` lexes to
+                // `Rational(inf)`), and unary-minus form for negatives
+                // (`- 5` prints identically on the second pass). `NaN` has
+                // no literal syntax at all; it is unreachable from the
+                // parser, so it keeps its conventional rendering.
+                if num.is_nan() {
+                    String::from("NaN")
+                } else if num.is_infinite() {
+                    if num.is_sign_negative() {
+                        String::from("- 1e999")
+                    } else {
+                        String::from("1e999")
+                    }
+                } else if num.is_sign_negative() {
+                    format!("- {}", num.abs())
+                } else {
+                    num.to_string()
+                }
+            }
             Self::Int(num) => num.to_string(),
             Self::BigInt(ref num) => format!("{num}n"),
             Self::Bool(v) => v.to_string(),

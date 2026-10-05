@@ -1,0 +1,53 @@
+# Crash-gate inventory (P4 validation gate): five HISTORICAL crash bugs,
+# reintroduced at gate time by crash-patches/*.break.patch (see crash-gate.sh).
+# Never run against the fixed tree — every entry would report RETIRED.
+#
+# Distinct-signature design (run.sh dedupes on the recorded line):
+#   parser-deep-nesting  native stack overflow via boa-eval (message on stderr)
+#   padstart-oom          allocation-failure abort (dev aborts fast here)
+#   function-ctor         "must be declarative environment" (define/mod.rs:126)
+#   class-scope           index-OOB with len in scope_analyzer.rs
+#   dataview-assert       debug_assert! in array_buffer/utils.rs (dev-only)
+# Deliberately excluded: cyclic-proto-walk-stack-overflow — a second native
+# stack overflow whose message is identical to parser-deep-nesting's, so the
+# pair can never be signature-distinct (the parser class rule covers both);
+# and sloppy-this-assign (7b79f30d) — its todo!() arm is unreachable (the
+# parser rejects `this = ` before bytecompile), so no input re-trips it.
+
+[[entry]]
+id = "parser-deep-nesting-stack-overflow"
+harness = "boa-eval"
+input = "tests/fuzz/drill/inputs/parser-deep-nesting-native.js"
+timeout = 180
+signature_match = "has overflowed its stack"
+
+[[entry]]
+id = "padstart-oom"
+harness = "boa-eval"
+input = "tests/fuzz/drill/inputs/padstart-oom.js"
+timeout = 120
+signature_match = "memory allocation"
+
+[[entry]]
+id = "function-ctor-nested-lexical"
+harness = "fuzz-target"
+target = "cli-exec"
+input = "tests/fuzz/drill/inputs/function-ctor-nested-lexical.js"
+timeout = 120
+signature_match = "declarative environment"
+
+[[entry]]
+id = "class-scope-index"
+harness = "fuzz-target"
+target = "cli-exec"
+input = "tests/fuzz/drill/inputs/class-scope-index.js"
+timeout = 120
+signature_match = "index out of bounds"
+
+[[entry]]
+id = "dataview-unaligned-assert"
+harness = "fuzz-target"
+target = "cli-exec"
+input = "tests/fuzz/drill/inputs/dataview-unaligned-assert.js"
+timeout = 120
+signature_match = "array_buffer/utils.rs"

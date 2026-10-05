@@ -1,0 +1,27 @@
+[package]
+name = "boa_fuzzilli"
+description = "Fuzzilli REPRL adapter for Boa: coverage-guided JS fuzzing target (P4.7 trial)."
+keywords = ["javascript", "ECMAScript", "fuzzing"]
+categories = ["command-line-utilites"]
+publish = false
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "boa-reprl"
+path = "src/main.rs"
+
+[dependencies]
+boa_engine = { workspace = true, features = ["fuzz", "verify-bytecode"] }
+clap = { workspace = true, features = ["derive"] }
+libc = "0.2"
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true

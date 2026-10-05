@@ -197,3 +197,20 @@ fn array_literal_elision_start_end() {
         ",
     );
 }
+
+#[test]
+fn overflowing_numeric_literal_round_trips() {
+    // `1e999` lexes to `Rational(inf)`; the printer must emit a numeric
+    // literal (not `inf`, which reparses as an identifier).
+    // Found by the parser-idempotency fuzzer (P4).
+    test_formatting(
+        r"
+        1e999;
+        ",
+    );
+    test_formatting(
+        r"
+        - 1e999;
+        ",
+    );
+}

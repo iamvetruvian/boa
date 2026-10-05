@@ -9,6 +9,12 @@
 # Build
 target
 dist
+# P3.5 differential run snapshots: raw JSON stays out (2.2 GB), the
+# compressed tarball + README + checksums may be committed (~10 MB).
+differential-runs/*
+!differential-runs/*.tar.zst
+!differential-runs/README.md
+!differential-runs/SHA256SUMS
 **/*.rs.bk
 node_modules
 .DS_Store
