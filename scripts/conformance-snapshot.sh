@@ -15,7 +15,12 @@ cd "$ROOT"
 bash scripts/verify-baseline.sh --test262-only
 
 echo "Building pinned boa_tester (release)..."
-cargo build --release --bin boa_tester
+# NOTE: `-p` is load-bearing, not style. A bare `--bin` from the workspace
+# root unifies features across default members; since tools/fuzzilli joined
+# the workspace that silently enables boa_engine/fuzz+verify-bytecode and the
+# resulting tester fails every test with NoInstructionsRemain (budget 0).
+# Always scope bin builds/runs with `-p` (see step-0 notes).
+cargo build --release -p boa_tester --bin boa_tester
 
 for run in run-1 run-2; do
   rm -rf "$OUT/$run"

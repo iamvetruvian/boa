@@ -40,7 +40,7 @@ jobs:
         run: |
           cd boa
           mkdir -p ../results/test262-full
-          cargo run --release --bin boa_tester -- run -v --timeout 60 -o ../results/test262-full
+          cargo run --release -p boa_tester --bin boa_tester -- run -v --timeout 60 -o ../results/test262-full
           cd ..
 
       - name: Gate on compare (no regressions vs P0 baseline)

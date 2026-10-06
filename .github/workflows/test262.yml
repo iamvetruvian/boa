@@ -44,7 +44,7 @@ jobs:
         run: |
           cd boa
           mkdir -p ../results/test262
-          cargo run --release --bin boa_tester -- run -v -o ../results/test262
+          cargo run --release -p boa_tester --bin boa_tester -- run -v -o ../results/test262
           cd ..
 
       - name: Verify Test262 pin
@@ -80,12 +80,12 @@ jobs:
       - name: Build tester
         run: |
           cd boa
-          cargo build --release --bin boa_tester
+          cargo build --release -p boa_tester --bin boa_tester
 
       - name: Lint tester config
         run: |
           cd boa
-          cargo run --release --bin boa_tester -- check-config --report
+          cargo run --release -p boa_tester --bin boa_tester -- check-config --report
 
       - name: Compute affected subsets
         id: subsets

@@ -49,7 +49,7 @@ jobs:
       - name: Run the test262 test suite
         run: |
           cd boa
-          cargo run --release --bin boa_tester -- run -v -o ../data/test262
+          cargo run --release -p boa_tester --bin boa_tester -- run -v -o ../data/test262
 
       # Commit and push results back to the `data` repo
       - name: Commit results

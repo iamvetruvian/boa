@@ -24,12 +24,12 @@ args = ["test", "${@}"]
 
 [tasks.test262]
 command = "cargo"
-args = ["run", "@@remove-empty(RELEASE_ARG)", "--bin", "boa_tester", "--", "run", "${@}"]
+args = ["run", "-p", "boa_tester", "@@remove-empty(RELEASE_ARG)", "--bin", "boa_tester", "--", "run", "${@}"]
 
 [tasks.bench-js]
 condition = { env_set = [ "BOA_DATA_ROOT" ] }
 command = "cargo"
-args = ["run", "--bin", "boa", "--release", "--", "@@remove-empty(BOA_DATA_ROOT)bench/bench-v8/combined.js"]
+args = ["run", "-p", "boa_cli", "--bin", "boa", "--release", "--", "@@remove-empty(BOA_DATA_ROOT)bench/bench-v8/combined.js"]
 
 [tasks.insta-test]
 install_crate = "cargo-insta"

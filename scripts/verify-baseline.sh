@@ -168,6 +168,23 @@ check_ci_pins() {
   fi
 }
 
+check_scoped_bins() {
+  # A bare `cargo --bin X` from the workspace root unifies features across
+  # default members; since tools/fuzzilli joined the workspace that silently
+  # enables boa_engine/fuzz+verify-bytecode and the built binary fails every
+  # test with NoInstructionsRemain. Bin builds/runs must be `-p` scoped.
+  # wpt.yml is exempt: it `cd`s into tests/wpt (its own package dir) first.
+  local bad_shell bad_make bad
+  bad_shell="$(grep -rn -- '--bin' scripts/ .github/workflows/ make/ 2>/dev/null | grep 'cargo' | grep -v -E '\-p[ "]|--package' | grep -v -E '^[^:]+:[0-9]+:\s*#' | grep -v '^\.github/workflows/wpt\.yml' || true)"
+  bad_make="$(grep -rn -- '"--bin"' Makefile.toml make/ 2>/dev/null | grep -v -- '"-p"' || true)"
+  bad="${bad_shell}${bad_make:+${bad_shell:+$'\n'}${bad_make}}"
+  if [ -n "$bad" ]; then
+    fail "unscoped --bin invocation(s) (add -p <pkg>): $bad"
+  else
+    pass "all --bin invocations are -p scoped"
+  fi
+}
+
 case "${1:-}" in
   --test262-only)
     check_test262_pin
@@ -180,6 +197,7 @@ case "${1:-}" in
     check_oracle_pin
     check_lockfile
     check_ci_pins
+    check_scoped_bins
     ;;
 esac
 

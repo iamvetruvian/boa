@@ -361,6 +361,17 @@ const DEFAULT_TEST262_DIRECTORY: &str = "test262";
 fn main() -> Result<()> {
     color_eyre::install()?;
 
+    // Worker stacks must fit deeply nested inputs: the parser's stack guard
+    // (256 KiB red zone) measures absolute remaining stack, but rayon's 2 MiB
+    // default workers overflow on just 32 nesting levels (test262
+    // S13.2.1_A1_T1), which needs ~3 MiB optimized and ~13 MiB unoptimized.
+    // 32 MiB covers the deepest corpus tests in both profiles; thread stacks
+    // commit lazily so the resident cost stays proportional to actual depth.
+    rayon::ThreadPoolBuilder::new()
+        .stack_size(32 * 1024 * 1024)
+        .build_global()
+        .expect("no rayon pool exists yet at startup");
+
     match Cli::parse() {
         Cli::Run {
             verbose,

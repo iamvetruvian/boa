@@ -44,7 +44,7 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Build
-        run: cargo build --target ${{ matrix.target }} --release --locked --bin boa
+        run: cargo build --target ${{ matrix.target }} --release --locked -p boa_cli --bin boa
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@29e53e917877a24fad85510ded594ab3c9ca12de # v2
