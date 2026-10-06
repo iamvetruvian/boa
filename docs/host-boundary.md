@@ -7,11 +7,11 @@ behavior with unit tests + WPT.
 
 ## `boa_runtime` vs `boa_wintertc`
 
-| | `boa_wintertc` (TC55 minimum web APIs) | `boa_runtime` (example web runtime) |
-|---|---|---|
-| Own modules | `abort`, `base64`, `clone`, `console`, `encoding`, `events`, `microtask`, `store`, `timers`, `url` (feature `url`), `fetch` (feature `fetch`) | `text`, `message`, `url` (feature `url`), `fetch` (feature `fetch`), `abort` (feature `fetch`), `process` (feature `process`), `test262` (feature `test262`) |
-| Re-exports | — (standalone, depends only on `boa_engine`) | `console`, `base64`, `clone`, `microtask`, `store` from wintertc; `timers` as `interval` |
-| `register` installs | console, timers, encoding, microtask, clone, base64, abort + `url`/`fetch` by feature (`wintertc/src/lib.rs:63`) | Base64, Timeout, Encoding, Microtask, StructuredClone + `url`/`process`/abort by feature, then caller extensions via `RuntimeExtension` (`runtime/src/lib.rs:172`; tuple impls up to 12 at `extensions.rs:173`) |
+|                     | `boa_wintertc` (TC55 minimum web APIs)                                                                                                        | `boa_runtime` (example web runtime)                                                                                                                                                                             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own modules         | `abort`, `base64`, `clone`, `console`, `encoding`, `events`, `microtask`, `store`, `timers`, `url` (feature `url`), `fetch` (feature `fetch`) | `text`, `message`, `url` (feature `url`), `fetch` (feature `fetch`), `abort` (feature `fetch`), `process` (feature `process`), `test262` (feature `test262`)                                                    |
+| Re-exports          | — (standalone, depends only on `boa_engine`)                                                                                                  | `console`, `base64`, `clone`, `microtask`, `store` from wintertc; `timers` as `interval`                                                                                                                        |
+| `register` installs | console, timers, encoding, microtask, clone, base64, abort + `url`/`fetch` by feature (`wintertc/src/lib.rs:63`)                              | Base64, Timeout, Encoding, Microtask, StructuredClone + `url`/`process`/abort by feature, then caller extensions via `RuntimeExtension` (`runtime/src/lib.rs:172`; tuple impls up to 12 at `extensions.rs:173`) |
 
 ## What the CLI injects (`cli/src/main.rs`)
 
@@ -57,17 +57,17 @@ protocol), `$262` object, optional `console`, plus harness files
 
 ## Untrusted-input surfaces (P4 target bounds)
 
-| # | Surface | Entry code | Threat shape | P4 target |
-|---|---|---|---|---|
-| 1 | JS source bytes (scripts, modules, `eval`, `$262.evalScript`, `-e`, stdin, `ffi/wasm::evaluate`) | `Source::*`, `Script/Module::parse`, `cli/src/main.rs:612`, `ffi/wasm/src/lib.rs:19` | parser crashes/hangs, evil syntax | parser robustness (existing idempotency target + byte-level target) |
-| 2 | Module specifiers + resolved file bytes | `SimpleModuleLoader` (root `-r` / test parent dir) | path traversal outside root, hostile module graphs | module-specifier fuzz |
-| 3 | CLI flags + `FILE` paths | `cli/src/main.rs:89-179` | option confusion, unreadable/huge files | host-injection paths |
-| 4 | Fetch responses (status/headers/body bytes) | `BlockingReqwestFetcher` (`cli/Cargo.toml:46`), `runtime/wintertc fetch` | malformed bodies, huge payloads | fetch-response fuzz |
-| 5 | URL strings | `runtime/wintertc url` modules | parser panics, non-termination | url-parse fuzz |
-| 6 | `structuredClone` payloads / message ports | `wintertc store/clone`, `runtime message` | deep/cyclic graphs, hostile deserialization | clone/message fuzz |
-| 7 | `Atomics.wait` + shared buffers across agents | `builtins/atomics`, `futex.rs`, `test262.rs` agent threads | deadlocks, data races (UB), wait-forever | concurrency stress (P4.4/P6) |
-| 8 | ICU locale/data inputs (`Intl`, `Temporal`) | `builtins/intl`, `builtins/temporal`, `boa_icu_provider` | ICU4X panics, locale canonicalization gaps | intl/temporal differential vs oracle |
-| 9 | Bytecode (only if a surface ever accepts it) | none known — `ByteCompiler::finish` is the sole producer | n/a today | P5 documents out-of-contract; fuzz only valid bytecode |
+| #   | Surface                                                                                          | Entry code                                                                           | Threat shape                                       | P4 target                                                           |
+| --- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------------------------------- |
+| 1   | JS source bytes (scripts, modules, `eval`, `$262.evalScript`, `-e`, stdin, `ffi/wasm::evaluate`) | `Source::*`, `Script/Module::parse`, `cli/src/main.rs:612`, `ffi/wasm/src/lib.rs:19` | parser crashes/hangs, evil syntax                  | parser robustness (existing idempotency target + byte-level target) |
+| 2   | Module specifiers + resolved file bytes                                                          | `SimpleModuleLoader` (root `-r` / test parent dir)                                   | path traversal outside root, hostile module graphs | module-specifier fuzz                                               |
+| 3   | CLI flags + `FILE` paths                                                                         | `cli/src/main.rs:89-179`                                                             | option confusion, unreadable/huge files            | host-injection paths                                                |
+| 4   | Fetch responses (status/headers/body bytes)                                                      | `BlockingReqwestFetcher` (`cli/Cargo.toml:46`), `runtime/wintertc fetch`             | malformed bodies, huge payloads                    | fetch-response fuzz                                                 |
+| 5   | URL strings                                                                                      | `runtime/wintertc url` modules                                                       | parser panics, non-termination                     | url-parse fuzz                                                      |
+| 6   | `structuredClone` payloads / message ports                                                       | `wintertc store/clone`, `runtime message`                                            | deep/cyclic graphs, hostile deserialization        | clone/message fuzz                                                  |
+| 7   | `Atomics.wait` + shared buffers across agents                                                    | `builtins/atomics`, `futex.rs`, `test262.rs` agent threads                           | deadlocks, data races (UB), wait-forever           | concurrency stress (P4.4/P6)                                        |
+| 8   | ICU locale/data inputs (`Intl`, `Temporal`)                                                      | `builtins/intl`, `builtins/temporal`, `boa_icu_provider`                             | ICU4X panics, locale canonicalization gaps         | intl/temporal differential vs oracle                                |
+| 9   | Bytecode (only if a surface ever accepts it)                                                     | none known — `ByteCompiler::finish` is the sole producer                             | n/a today                                          | P5 documents out-of-contract; fuzz only valid bytecode              |
 
 `$boa` debug object and flowgraph/trace dumps are trusted-developer surfaces
 (host opt-in, never exposed to page JS); they are correctness-tested but not

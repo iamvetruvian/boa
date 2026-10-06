@@ -1,7 +1,19 @@
 [files]
-extend-exclude = ["CHANGELOG.md", "benches/scripts/**/*.js"]
+extend-exclude = [
+    "CHANGELOG.md",
+    "benches/scripts/**/*.js",
+    # Verbatim session transcripts (history, not prose).
+    "trajectory-*.json",
+    "conversation-*.txt",
+    # Generated data: Test262 test names/paths (pinned corpus) and the
+    # differential verdict matrix trip the dictionary by construction.
+    "test-results-baseline/**/latest.json",
+    "tools/differential/corpora/verdicts.toml",
+]
 
 [default.extend-words]
+# Fuzzilli REPRL handshake magic (protocol wire word, all caps on purpose).
+helo = "helo"
 ba = "ba"
 beng = "beng"
 fo = "fo"

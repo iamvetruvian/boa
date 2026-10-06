@@ -13,23 +13,23 @@ re-pin procedure for each input is at the bottom of this file.
 
 ## Pins
 
-| Input | Pinned value | Verified how |
-|---|---|---|
-| Boa source (P0 baseline commit) | `39cd11214ecb366200157dab96b3919e61e9a391` | `git rev-parse HEAD` at snapshot time |
-| Stable toolchain | `1.94.0` (`rustc 1.94.0 (4a4ef493e 2026-03-02)`, LLVM 21.1.8) | [`rust-toolchain.toml`](../rust-toolchain.toml) + `verify-baseline.sh`; channel manifest `channel-rust-1.94.0.toml` fetched 2026-10-01 |
-| Nightly toolchain (Miri, fuzz runs, sanitizers) | `nightly-2026-10-01` (`1.101.0-nightly (21b707e3f 2026-09-30)`, ships `miri-preview` + `rust-src`) | Dated manifest `dist/2026-10-01/channel-rust-nightly.toml` fetched 2026-10-01; consumed via `RUSTUP_TOOLCHAIN` in CI (see below) |
-| MSRV | `1.91.0` (from `rust-version` in `Cargo.toml`) | MSRV CI job reads `Cargo.toml` dynamically |
-| Test262 commit | `d86b2294eb0a17eaa281ff12c73c473ec864c72f` (2026-08-24, "Escape test paths and engine names as well in CI table") | [`test262_config.toml`](../test262_config.toml) + `git -C test262 rev-parse HEAD` in CI after every run |
-| WPT rev | `82a84e1842d583f1f197d64950453222b9f52c67` | [`test_wpt_config.toml`](../test_wpt_config.toml) |
-| Dependency lockfile | `Cargo.lock`, format version 4, sha256 `85a7c93b…2e2da8a` (full hash in git history at the P0 commit) | `cargo metadata --locked` must pass; `git diff --exit-code -- Cargo.lock` must be clean in CI |
-| `MIRIFLAGS` | `-Zmiri-tree-borrows` | [`.cargo/config.toml`](../.cargo/config.toml) |
-| Sanitizer flags (P4/P6 runs) | `RUSTFLAGS="-Zsanitizer=address,undefined"` on the pinned nightly | Pinned string; jobs that use it assert the nightly pin first |
-| Differential oracle engine (P3.1 v1) | SpiderMonkey jsshell `JavaScript-C128.14.0` (Firefox 128.14.0esr release, linux-x86_64) | Pin block below; `scripts/fetch-oracle.sh` fetches + verifies; `verify-baseline.sh` enforces version + binary hash |
+| Input                                           | Pinned value                                                                                                      | Verified how                                                                                                                           |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Boa source (P0 baseline commit)                 | `39cd11214ecb366200157dab96b3919e61e9a391`                                                                        | `git rev-parse HEAD` at snapshot time                                                                                                  |
+| Stable toolchain                                | `1.94.0` (`rustc 1.94.0 (4a4ef493e 2026-03-02)`, LLVM 21.1.8)                                                     | [`rust-toolchain.toml`](../rust-toolchain.toml) + `verify-baseline.sh`; channel manifest `channel-rust-1.94.0.toml` fetched 2026-10-01 |
+| Nightly toolchain (Miri, fuzz runs, sanitizers) | `nightly-2026-10-01` (`1.101.0-nightly (21b707e3f 2026-09-30)`, ships `miri-preview` + `rust-src`)                | Dated manifest `dist/2026-10-01/channel-rust-nightly.toml` fetched 2026-10-01; consumed via `RUSTUP_TOOLCHAIN` in CI (see below)       |
+| MSRV                                            | `1.91.0` (from `rust-version` in `Cargo.toml`)                                                                    | MSRV CI job reads `Cargo.toml` dynamically                                                                                             |
+| Test262 commit                                  | `d86b2294eb0a17eaa281ff12c73c473ec864c72f` (2026-08-24, "Escape test paths and engine names as well in CI table") | [`test262_config.toml`](../test262_config.toml) + `git -C test262 rev-parse HEAD` in CI after every run                                |
+| WPT rev                                         | `82a84e1842d583f1f197d64950453222b9f52c67`                                                                        | [`test_wpt_config.toml`](../test_wpt_config.toml)                                                                                      |
+| Dependency lockfile                             | `Cargo.lock`, format version 4, sha256 `85a7c93b…2e2da8a` (full hash in git history at the P0 commit)             | `cargo metadata --locked` must pass; `git diff --exit-code -- Cargo.lock` must be clean in CI                                          |
+| `MIRIFLAGS`                                     | `-Zmiri-tree-borrows`                                                                                             | [`.cargo/config.toml`](../.cargo/config.toml)                                                                                          |
+| Sanitizer flags (P4/P6 runs)                    | `RUSTFLAGS="-Zsanitizer=address,undefined"` on the pinned nightly                                                 | Pinned string; jobs that use it assert the nightly pin first                                                                           |
+| Differential oracle engine (P3.1 v1)            | SpiderMonkey jsshell `JavaScript-C128.14.0` (Firefox 128.14.0esr release, linux-x86_64)                           | Pin block below; `scripts/fetch-oracle.sh` fetches + verifies; `verify-baseline.sh` enforces version + binary hash                     |
 
 ### Why `RUSTUP_TOOLCHAIN` appears in CI
 
 `rust-toolchain.toml` pins the stable toolchain for every command run inside the
-repo directory — including jobs that must *not* run on stable. The two
+repo directory — including jobs that must _not_ run on stable. The two
 exceptions override the file with the `RUSTUP_TOOLCHAIN` environment variable,
 which takes precedence over toolchain files:
 
@@ -44,25 +44,25 @@ so a refactor cannot silently run Miri or the MSRV check on the wrong toolchain.
 Different binaries build the engine with different features. A baseline number
 is only comparable to a new number taken with the same row:
 
-| Binary / suite | Feature set |
-|---|---|
-| `boa_tester` (Test262 baseline) | default: `boa_engine/intl_bundled`, `boa_engine/experimental`, `annex-b` (see `tests/tester/Cargo.toml`) |
-| `boa` CLI | default incl. `native-backtrace`, `fast-allocator`, `fetch`, plus `deser`, `flowgraph`, `trace` (see `cli/Cargo.toml`) |
-| `boa_benches` (perf baseline) | engine with `intl_bundled` on top of engine defaults `float16,xsum,temporal` (see `benches/Cargo.toml`) |
-| Engine defaults | `float16,xsum,temporal` (see `core/engine/Cargo.toml`) |
-| Fuzz targets | engine with `fuzz` (`boa_ast/arbitrary`, `boa_interner/arbitrary`) |
+| Binary / suite                  | Feature set                                                                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `boa_tester` (Test262 baseline) | default: `boa_engine/intl_bundled`, `boa_engine/experimental`, `annex-b` (see `tests/tester/Cargo.toml`)               |
+| `boa` CLI                       | default incl. `native-backtrace`, `fast-allocator`, `fetch`, plus `deser`, `flowgraph`, `trace` (see `cli/Cargo.toml`) |
+| `boa_benches` (perf baseline)   | engine with `intl_bundled` on top of engine defaults `float16,xsum,temporal` (see `benches/Cargo.toml`)                |
+| Engine defaults                 | `float16,xsum,temporal` (see `core/engine/Cargo.toml`)                                                                 |
+| Fuzz targets                    | engine with `fuzz` (`boa_ast/arbitrary`, `boa_interner/arbitrary`)                                                     |
 
 ## Baseline artifacts produced on these pins
 
-| Artifact | Location | Headline result |
-|---|---|---|
-| Test262 conformance snapshot (two full runs) | `test-results-baseline/run-1`, `run-2` (+ `MANIFEST.md`) | 53578 total, 51446 passed, 1648 ignored, 484 failed, 0 panics, 96.02% — both `latest.json` files byte-identical (re-snapshotted step-0, 2026-10-06) |
-| Test262 full-run wall time | `test-results-baseline/MANIFEST.md`, `perf/baseline.json` | 84 s / 84 s (bounds full-gate frequency) |
-| Performance baseline | `perf/baseline.json` | Criterion means per `benches/scripts/**` on the pinned toolchain |
-| Architecture inventory | `docs/architecture-inventory.md` | every crate + major module classified |
-| Unsafe inventory | `docs/unsafe-inventory.json` (machine-readable) + `docs/unsafe-inventory.md` | every `unsafe` block/fn/impl under `core/*`, status `unjustified` by default (P6 audits) |
-| Concurrency inventory | `docs/concurrency-inventory.md` | threads, atomics, locks, channels, `Send`/`Sync`; decides Loom scope in P6 |
-| Host-boundary map | `docs/host-boundary.md` | `boa_runtime` vs `boa_wintertc`, CLI injections, untrusted-input surfaces |
+| Artifact                                     | Location                                                                     | Headline result                                                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test262 conformance snapshot (two full runs) | `test-results-baseline/run-1`, `run-2` (+ `MANIFEST.md`)                     | 53578 total, 51446 passed, 1648 ignored, 484 failed, 0 panics, 96.02% — both `latest.json` files byte-identical (re-snapshotted step-0, 2026-10-06) |
+| Test262 full-run wall time                   | `test-results-baseline/MANIFEST.md`, `perf/baseline.json`                    | 84 s / 84 s (bounds full-gate frequency)                                                                                                            |
+| Performance baseline                         | `perf/baseline.json`                                                         | Criterion means per `benches/scripts/**` on the pinned toolchain                                                                                    |
+| Architecture inventory                       | `docs/architecture-inventory.md`                                             | every crate + major module classified                                                                                                               |
+| Unsafe inventory                             | `docs/unsafe-inventory.json` (machine-readable) + `docs/unsafe-inventory.md` | every `unsafe` block/fn/impl under `core/*`, status `unjustified` by default (P6 audits)                                                            |
+| Concurrency inventory                        | `docs/concurrency-inventory.md`                                              | threads, atomics, locks, channels, `Send`/`Sync`; decides Loom scope in P6                                                                          |
+| Host-boundary map                            | `docs/host-boundary.md`                                                      | `boa_runtime` vs `boa_wintertc`, CLI injections, untrusted-input surfaces                                                                           |
 
 ## Oracle-engine pin (P3.1 v1)
 

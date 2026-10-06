@@ -7,24 +7,24 @@ per fixed bug — a fix without a regression entry is incomplete.
 
 ## Entry schema (`regressions.toml`)
 
-| Field | Required | Meaning |
-|---|---|---|
-| `id` | yes | Stable kebab-case id; doubles as the `cases/<id>/` directory |
-| `title` | yes | One-line bug description |
-| `status` | yes | `landed` (executes) or `open` (documents unlanded work; validated but skipped) |
-| `reproducer` | yes | Path to `repro.js`, relative to this directory |
-| `expect` | yes | `pass`, or `throw <ErrorName>` for must-throw repros |
-| `layer` | yes | Responsible layer, e.g. `engine/vm/runtime-limits` |
-| `unit_test` | yes | Responsible-layer Rust test (`path::to::file.rs::test_name`); the file must exist |
-| `test262_style` | one of the two | Nearest Test262 path (file or dir); checked when a checkout exists |
-| `no_test262_reason` | one of the two | Written justification when no Test262 test covers the bug |
-| `fuzz_seed` | yes | Raw-JS corpus seed for this bug class, staged under `tests/fuzz/seeds/` (P4 wires seeds into harnesses) |
-| `symptom` | yes | Observable misbehavior |
-| `root_cause` | yes | Why it happened |
-| `spec` | no | Spec section URL (omit for host-defined behavior like runtime limits) |
-| `fix_commit` | yes | Commit that fixed it |
-| `finder` | yes | Who/what found it (person, fuzzer, `P1-seed`, …) |
-| `added` | yes | Entry date, `YYYY-MM-DD` |
+| Field               | Required       | Meaning                                                                                                 |
+| ------------------- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| `id`                | yes            | Stable kebab-case id; doubles as the `cases/<id>/` directory                                            |
+| `title`             | yes            | One-line bug description                                                                                |
+| `status`            | yes            | `landed` (executes) or `open` (documents unlanded work; validated but skipped)                          |
+| `reproducer`        | yes            | Path to `repro.js`, relative to this directory                                                          |
+| `expect`            | yes            | `pass`, or `throw <ErrorName>` for must-throw repros                                                    |
+| `layer`             | yes            | Responsible layer, e.g. `engine/vm/runtime-limits`                                                      |
+| `unit_test`         | yes            | Responsible-layer Rust test (`path::to::file.rs::test_name`); the file must exist                       |
+| `test262_style`     | one of the two | Nearest Test262 path (file or dir); checked when a checkout exists                                      |
+| `no_test262_reason` | one of the two | Written justification when no Test262 test covers the bug                                               |
+| `fuzz_seed`         | yes            | Raw-JS corpus seed for this bug class, staged under `tests/fuzz/seeds/` (P4 wires seeds into harnesses) |
+| `symptom`           | yes            | Observable misbehavior                                                                                  |
+| `root_cause`        | yes            | Why it happened                                                                                         |
+| `spec`              | no             | Spec section URL (omit for host-defined behavior like runtime limits)                                   |
+| `fix_commit`        | yes            | Commit that fixed it                                                                                    |
+| `finder`            | yes            | Who/what found it (person, fuzzer, `P1-seed`, …)                                                        |
+| `added`             | yes            | Entry date, `YYYY-MM-DD`                                                                                |
 
 Reproducers run in a default engine context with two globals injected:
 `assert(cond, message?)` and `assertEquals(actual, expected, message?)`

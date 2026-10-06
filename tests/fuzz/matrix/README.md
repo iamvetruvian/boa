@@ -33,7 +33,7 @@ hooks and the static scan share.
 
 ## Canonical commands (from `tests/fuzz`)
 
-Deterministic feeds (~2 min, CI-gatable):
+Deterministic feeds (~2 min, CI-gateable):
 
 ```sh
 cargo run -q --release --example matrix -- det-battery.json \

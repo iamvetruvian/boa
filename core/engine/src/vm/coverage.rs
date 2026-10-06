@@ -115,7 +115,7 @@ pub fn coverage_dump() -> Vec<(String, u64)> {
 /// Serialize the current dump as one JSON object `{"cell":count,...}`.
 ///
 /// Single serialization implementation shared by the matrix tool and the
-/// tester flag. No escaping pass: [`cell_is_json_safe`] holds for every
+/// tester flag. No escaping pass: `cell_is_json_safe` holds for every
 /// emitted cell.
 #[must_use]
 pub fn coverage_dump_json() -> String {
@@ -140,7 +140,7 @@ pub fn coverage_dump_json() -> String {
 /// recursion follows `Constant::Function` exactly like
 /// [`CodeBlock::verify`](crate::vm::code_block::CodeBlock::verify)'s
 /// traversal. Each instruction contributes its base cell plus its
-/// statically-known refinement ([`refinement_cell`]); branch direction and
+/// statically-known refinement (`refinement_cell`); branch direction and
 /// error surfacing are dynamic-only. Callers must verify compiler-produced
 /// blocks first (an invalid block is a compiler bug and must crash loud
 /// there, not here): the iterator below assumes well-formed bytecode.

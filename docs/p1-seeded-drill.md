@@ -80,7 +80,7 @@ exists as a second gate). The fourth breaches.
 
 - Attempt 1, `9f5521bd` ("not a constructor" error message; touches
   `core/engine/src/object/*` → full `test`): exit 0 on substance. It
-  first *appeared* to breach with 1 timeout, but the timeout was
+  first _appeared_ to breach with 1 timeout, but the timeout was
   `test/staging/sm/regress/regress-567152` deadlocking on the
   pre-fix child-output pipe (87 KiB completion-value dump vs 64 KiB
   pipe buffer, parent never draining) — reproduced on the clean
@@ -95,7 +95,7 @@ exists as a second gate). The fourth breaches.
   0 timeouts. Positive control proves the revert is live:
   `cargo test -p boa_regression` on the reverted tree fails with
   `try-finally-pending-return: unexpected throw ... outer return
-  survives inner break: 43 !== 42`. Test262 simply does not cover
+survives inner break: 43 !== 42`. Test262 simply does not cover
   that edge — the DB gate catches what the subset gate cannot.
 - Attempt 3, `a93e0b3f` (StringToNumber signed-Infinity spellings;
   touches `core/string/*` → full `test`): exit 0, conformance

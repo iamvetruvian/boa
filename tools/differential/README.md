@@ -15,12 +15,12 @@ v1 oracle: **SpiderMonkey `jsshell`, `JavaScript-C128.14.0`** (Firefox
 Head-to-head evaluation (all commands run headless, single trivial program,
 3 repetitions, October 2026):
 
-| Candidate | Version | Startup | Pin cost | Output normalizability | Verdict |
-|---|---|---|---|---|---|
-| `jsshell` (SpiderMonkey) | JavaScript-C128.14.0 | ~10 ms | zero-build: official Mozilla release zip + published SHA256SUMS (verified byte-identical) | best: one error line + short stack on stderr, exit 3 on throw/syntax, silent on success | **v1 oracle** |
-| `node` (V8) | v26.10.0 | ~30 ms | low: nodejs.org tarballs + SHASUMS | noisier: internal loader frames + version footer on stderr, exit 1 | reserved for P3.5 second oracle |
-| `deno` (V8) | 2.9.7 | ~20–60 ms, variable | medium: release zips, no versioned checksum chain as direct | largest host surface (permissions, TS) | dropped |
-| `d8` / `jsc` | — | — | build-from-source | — | not evaluated further once jsshell won on all three axes |
+| Candidate                | Version              | Startup             | Pin cost                                                                                  | Output normalizability                                                                  | Verdict                                                  |
+| ------------------------ | -------------------- | ------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `jsshell` (SpiderMonkey) | JavaScript-C128.14.0 | ~10 ms              | zero-build: official Mozilla release zip + published SHA256SUMS (verified byte-identical) | best: one error line + short stack on stderr, exit 3 on throw/syntax, silent on success | **v1 oracle**                                            |
+| `node` (V8)              | v26.10.0             | ~30 ms              | low: nodejs.org tarballs + SHASUMS                                                        | noisier: internal loader frames + version footer on stderr, exit 1                      | reserved for P3.5 second oracle                          |
+| `deno` (V8)              | 2.9.7                | ~20–60 ms, variable | medium: release zips, no versioned checksum chain as direct                               | largest host surface (permissions, TS)                                                  | dropped                                                  |
+| `d8` / `jsc`             | —                    | —                   | build-from-source                                                                         | —                                                                                       | not evaluated further once jsshell won on all three axes |
 
 Observed oracle behavior the normalizer relies on (all verified against the
 pinned binary):
@@ -61,10 +61,10 @@ oracle.success_exit   # [0]
 oracle.error_class    # exit_code -> {threw, syntax} hint (normalizer confirms from stderr)
 ```
 
-| Oracle | Status | Adapter | Pin |
-|---|---|---|---|
-| jsshell 128.14.0esr | v1, gated in CI | `src/oracle.rs::Jsshell` | `docs/baseline.md` |
-| node 26.10.0 | P3.5 recipe demo (nightly-only) | `src/oracle.rs::Node` | `docs/baseline.md` (recorded at demo time) |
+| Oracle              | Status                          | Adapter                  | Pin                                        |
+| ------------------- | ------------------------------- | ------------------------ | ------------------------------------------ |
+| jsshell 128.14.0esr | v1, gated in CI                 | `src/oracle.rs::Jsshell` | `docs/baseline.md`                         |
+| node 26.10.0        | P3.5 recipe demo (nightly-only) | `src/oracle.rs::Node`    | `docs/baseline.md` (recorded at demo time) |
 
 ## Pipeline layout
 
@@ -86,7 +86,7 @@ src/main.rs            # `run` / `run-case` / `triage` subcommands
 ```
 
 - `boa_differential run --corpus corpora/ci.toml --oracle <js>
-  --expected-version <pin> --verdicts corpora/verdicts.toml --output <dir>`
+--expected-version <pin> --verdicts corpora/verdicts.toml --output <dir>`
   executes every case on both sides and writes `diff-results.json` (P1.1
   store conventions) plus `triage-queue.json` for mismatches, carrying
   verdicts forward across identical diffs and pre-applying committed ones.
@@ -107,7 +107,7 @@ Compared after normalization: completion flag | thrown kind | value rendering
 | console lines (ordered) | state bindings (sorted) + enumeration order |
 stderr. Erased by explicit rule only:
 
-- R1/R1b: error *message* text (kinds compare; thrown native errors
+- R1/R1b: error _message_ text (kinds compare; thrown native errors
   canonicalize to `throw:<Kind>`).
 - R2: stack traces, caret lines, `file:line:col` prefixes (first stderr line
   still compares — stderr is never silently ignored).

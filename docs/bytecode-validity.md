@@ -54,7 +54,7 @@ lands on an instruction boundary strictly below `bytes.len()`, and is never
 `DUMMY_ADDRESS`.
 
 `[V]` `TemplateLookup { address, site, .. }` pairs with the `TemplateCreate`
-immediately *preceding* its jump target, with an equal `site`. The lookup
+immediately _preceding_ its jump target, with an equal `site`. The lookup
 jumps to `address` on cache hit (skipping creation); the create runs on
 miss. Part-register stores sit between the lookup and the create, so the
 pairing is checked at the target, not at the fall-through.
@@ -96,15 +96,15 @@ registers); use-before-def is possible in principle and would read
 helpers, direct indexing, or `unreachable!`) on arity or type mismatch, so
 every reference is checked for bounds **and** expected type:
 
-| Site | Expected type |
-|---|---|
-| `StoreLiteral.index` | `String` or `BigInt` |
-| `StoreRegexp.{pattern,flags}_index` | `String`, `String` |
-| `GetFunction.index` | `Function` |
-| `CallEval.scope_index`, `CallEvalSpread.scope_index`, `PushScope.scope_index` | `Scope` |
-| `InPrivate.index`, `GetMethod.name_index`, `ThrowMutateImmutable.index`, `ThrowNew{Type,Reference}Error.message` | `String` |
-| Every `*_by_name name_index` (`Define*`, `Set*`, `GetPrivateField`, `DeletePropertyByName`, private-field/method ops) | `String` |
-| `PushPrivateEnvironment.name_indices` (each element) | `String` |
+| Site                                                                                                                  | Expected type        |
+| --------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `StoreLiteral.index`                                                                                                  | `String` or `BigInt` |
+| `StoreRegexp.{pattern,flags}_index`                                                                                   | `String`, `String`   |
+| `GetFunction.index`                                                                                                   | `Function`           |
+| `CallEval.scope_index`, `CallEvalSpread.scope_index`, `PushScope.scope_index`                                         | `Scope`              |
+| `InPrivate.index`, `GetMethod.name_index`, `ThrowMutateImmutable.index`, `ThrowNew{Type,Reference}Error.message`      | `String`             |
+| Every `*_by_name name_index` (`Define*`, `Set*`, `GetPrivateField`, `DeletePropertyByName`, private-field/method ops) | `String`             |
+| `PushPrivateEnvironment.name_indices` (each element)                                                                  | `String`             |
 
 `[V]` `verify` enforces the whole table, then recurses into every nested
 `Constant::Function` (depth-capped; the parser already bounds source

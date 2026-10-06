@@ -220,7 +220,7 @@ fn ignore_ref(entry: &IgnoreEntry) -> IgnoreRef {
 }
 
 /// Loads `test id -> crash signature` from a `crashes.json` next to the
-/// results file. Missing or unparseable files yield an empty map: runs
+/// results file. Missing or unparsable files yield an empty map: runs
 /// without crash accounting (like the P0 baseline) still produce a matrix.
 fn load_crash_signatures(latest_path: &Path) -> FxHashMap<String, String> {
     #[derive(Deserialize)]

@@ -23,7 +23,7 @@ fn do_fuzz(mut data: FuzzData) -> Result<(), Box<dyn Error>> {
     let scope = Scope::new_global();
     // For a variety of reasons, we may not actually produce valid code here (e.g., nameless function).
     // Fail fast and only make the next checks if we were valid; signal rejection
-    // so libFuzzer does not retain unparseable inputs in the corpus.
+    // so libFuzzer does not retain unparsable inputs in the corpus.
     // Before rejecting, assert error-determinism: the same bytes must fail identically twice.
     let first = match parser.parse_script(&scope, &mut data.interner) {
         Ok(first) => first,

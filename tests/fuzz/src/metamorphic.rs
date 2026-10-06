@@ -104,7 +104,7 @@ pub struct Variant {
 /// Rewrite `source` into its single-transform metamorphic variants.
 ///
 /// Returns one variant per firing transform (at most four), each applying one
-/// transform at all of its sites. Unparseable input yields no variants.
+/// transform at all of its sites. Unparsable input yields no variants.
 /// Variants whose lift coincides with the original lift carry no signal and
 /// are dropped (e.g. parens the printer re-inserts).
 #[must_use]
@@ -647,7 +647,7 @@ mod tests {
     }
 
     #[test]
-    fn unparseable_yields_no_variants() {
+    fn unparsable_yields_no_variants() {
         assert!(metamorphic_variants("function (;").is_empty());
     }
 

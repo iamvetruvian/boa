@@ -32,7 +32,7 @@ jobs:
           toolchain: 1.94.0
 
       - name: Install mold linker
-        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+        uses: rui314/setup-mold@10ca16bf91dc22e05ebdc935cad9c75ea248f621 # v1
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload WPT results
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: wpt-results
           path: results/wpt

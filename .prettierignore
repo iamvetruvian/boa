@@ -16,3 +16,27 @@ flake.lock
 
 # Assets that should not be checked.
 benches/scripts/v8-benches
+
+# Adversarial / byte-exact JS inputs: fuzz seeds, crash repros, differential
+# corpora, snapshot-test inputs. Must stay byte-identical (formatting would
+# change the input); some are intentionally invalid or too deep for parsers
+# (prettier itself stack-overflows on the deep-nesting repro).
+tests/regression/cases
+tests/fuzz/seeds
+tests/fuzz/probes
+tests/fuzz/drill
+tools/differential/corpora/adversarial
+tests/insta-bytecode/scripts
+
+# Local-only vendored/run trees (never in CI checkouts; slow + noisy).
+differential-runs
+tests_wpt
+
+# Generated data (rewritten by tooling; formatting would churn pointlessly).
+test-results-baseline/run-*
+docs/conformance-gap.json
+docs/conformance-gap.md
+docs/unsafe-inventory.json
+docs/semantic-features-baseline.json
+tests/fuzz/matrix/*.json
+tests/fuzz/pipeline/triage

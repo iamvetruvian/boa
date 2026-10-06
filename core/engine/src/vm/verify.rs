@@ -220,7 +220,7 @@ pub enum VerifyError {
     },
     /// An `IS_ASYNC` block carries no exception handler.
     AsyncWithoutHandler,
-    /// `Constant::Function` nesting exceeds [`MAX_NESTING_DEPTH`].
+    /// `Constant::Function` nesting exceeds `MAX_NESTING_DEPTH`.
     NestingTooDeep {
         /// The depth at which verification gave up.
         depth: u32,

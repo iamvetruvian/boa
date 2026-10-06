@@ -6,26 +6,26 @@ Machine-readable inventory: [`unsafe-inventory.json`](unsafe-inventory.json)
 
 ## Headline counts (scope: `core/*`)
 
-| Kind | Count |
-|---|---|
-| `unsafe` blocks | 366 |
-| `unsafe fn` | 123 |
-| `unsafe impl` | 89 |
-| `unsafe extern` (fn-type declarations inside macros — lowest priority) | 10 |
-| `unsafe trait` (`Trace`, `Readable`) | 2 |
-| **Total sites** | **590** |
+| Kind                                                                   | Count   |
+| ---------------------------------------------------------------------- | ------- |
+| `unsafe` blocks                                                        | 366     |
+| `unsafe fn`                                                            | 123     |
+| `unsafe impl`                                                          | 89      |
+| `unsafe extern` (fn-type declarations inside macros — lowest priority) | 10      |
+| `unsafe trait` (`Trace`, `Readable`)                                   | 2       |
+| **Total sites**                                                        | **590** |
 
-| Crate | Sites | Concentration |
-|---|---|---|
-| `core/engine` | 276 | value codec, array buffers, atomics/futex, opcode args |
-| `core/gc` | 175 | allocator, `Trace` impls, sweep/finalize, ephemerons |
-| `core/string` | 92 | builder alloc/realloc, vtables, slice repr |
-| `core/interner` | 23 | fixed-string bump storage |
-| `core/macros` | 8 | `Trace`-derive template code (generated, not hand-written) |
-| `core/runtime` | 6 | process + `$262` agent closures |
-| `core/wintertc` | 8 | value store |
-| `core/parser` | 2 | — |
-| `core/ast`, `core/icu_provider` | 0 | clean |
+| Crate                           | Sites | Concentration                                              |
+| ------------------------------- | ----- | ---------------------------------------------------------- |
+| `core/engine`                   | 276   | value codec, array buffers, atomics/futex, opcode args     |
+| `core/gc`                       | 175   | allocator, `Trace` impls, sweep/finalize, ephemerons       |
+| `core/string`                   | 92    | builder alloc/realloc, vtables, slice repr                 |
+| `core/interner`                 | 23    | fixed-string bump storage                                  |
+| `core/macros`                   | 8     | `Trace`-derive template code (generated, not hand-written) |
+| `core/runtime`                  | 6     | process + `$262` agent closures                            |
+| `core/wintertc`                 | 8     | value store                                                |
+| `core/parser`                   | 2     | —                                                          |
+| `core/ast`, `core/icu_provider` | 0     | clean                                                      |
 
 Top files: `builtins/array_buffer/utils.rs` (73), `gc/trace.rs` (50),
 `gc/lib.rs` (36), `string/builder.rs` (32), `value/inner/nan_boxed.rs` (28),
@@ -96,26 +96,26 @@ gate is the enforcement instead.
 
 Headline counts (scope: `core/*`, schema v3):
 
-| Kind | Count |
-|---|---|
-| `unsafe` blocks | 371 |
-| `unsafe fn` | 123 |
-| `unsafe impl` | 89 |
-| `trace_bypass` | 129 |
-| `unsafe extern` (declarations only) | 10 |
-| `unsafe trait` | 2 |
-| **Total sites** | **724** |
+| Kind                                | Count   |
+| ----------------------------------- | ------- |
+| `unsafe` blocks                     | 371     |
+| `unsafe fn`                         | 123     |
+| `unsafe impl`                       | 89      |
+| `trace_bypass`                      | 129     |
+| `unsafe extern` (declarations only) | 10      |
+| `unsafe trait`                      | 2       |
+| **Total sites**                     | **724** |
 
-| Crate | Sites |
-|---|---|
-| `core/engine` | 384 |
-| `core/gc` | 177 |
-| `core/string` | 92 |
-| `core/runtime` | 25 |
-| `core/interner` | 23 |
-| `core/macros` | 13 |
-| `core/wintertc` | 8 |
-| `core/parser` | 2 |
+| Crate           | Sites |
+| --------------- | ----- |
+| `core/engine`   | 384   |
+| `core/gc`       | 177   |
+| `core/string`   | 92    |
+| `core/runtime`  | 25    |
+| `core/interner` | 23    |
+| `core/macros`   | 13    |
+| `core/wintertc` | 8     |
+| `core/parser`   | 2     |
 
 Families: A nan_boxed codec (28) → B gc core/rooting (177: trace,
 allocator, Gc handles, ephemerons, cells, vtables, weak maps, tests,
@@ -133,6 +133,7 @@ DateTimeFormat caches, namespace resolved_bindings, synthetic-module init
 captures, ProcessProvider capture, console Logger capture.
 
 SAFETY fixes landed in this audit:
+
 - `string/builder.rs`: `current_layout` uses `Layout::new` (never forms `&`
   to the uninitialized header); `extend_from_slice_unchecked` documents
   non-overlap.

@@ -11,18 +11,18 @@ JIT-aware GC). Both projects build on the existing interpreter pipeline, so an
 unstable or incorrect interpreter would multiply uncertainty into every later
 stage ("buggy VM → JIT → optimized buggy semantics → impossible debugging
 nightmare"). This plan therefore implements the discussion's prerequisite: make
-the interpreter correct and architecturally stable *first*, and — more
+the interpreter correct and architecturally stable _first_, and — more
 importantly — build the permanent assurance system (harness, oracles, fuzz
-fleet, gates) that *proves* it stays that way while all later work proceeds.
+fleet, gates) that _proves_ it stays that way while all later work proceeds.
 
 **Which part of `discussion.md` this plan addresses, exactly.**
 
 - The step-zero mandate, lines 892–936 (`# 0. First: eliminate correctness and
-  architectural instability`): the interpreter must become the semantic
+architectural instability`): the interpreter must become the semantic
   reference implementation against which every later tier is tested.
 - The Claim B aspiration, lines 1791–1795: "extremely high confidence that
   there are no important undiscovered bugs in the tested scope" — explicitly
-  *not* Claim C ("no bug exists anywhere"), which testing cannot establish.
+  _not_ Claim C ("no bug exists anywhere"), which testing cannot establish.
 - The revised roadmap's **PHASE 0 through PHASE 6**, lines 3257–3311 (pin and
   inventory → Test262/spec tests → differential testing → fuzzing →
   bug-fixing with permanent regression tests → invariants/Miri/sanitizers/
@@ -87,33 +87,33 @@ phases that follow.
 
 ### Boa-state claims: confirmed, with evidence
 
-| # | Claim in discussion | Verdict | Evidence |
-|---|---------------------|---------|----------|
-| 1 | Boa is at v0.22.0, released late Aug 2026 | CONFIRMED (1-day drift: repo says 2026-08-27, discussion says Aug 28) | `Cargo.toml:29`, `CHANGELOG.md:3` |
-| 2 | ~95.6% Test262 conformance | SUBSTANTIALLY CONFIRMED (independent snapshots agree at 95.4–95.6%; repo computes the figure at runtime, it is not pinned in-tree) | `tests/tester` computes pass rate at runtime; `README.md:20` says ">90%"; corroborated by independent public snapshots (web-search snippets, not used as authoritative evidence) |
-| 3 | Self-described "experimental" engine | CONFIRMED | `README.md:20` |
-| 4 | Pipeline: parser → AST → bytecompiler → bytecode → register VM; `CodeBlock` holds bytecode/constants/bindings/exception info/ICs/registers | CONFIRMED | `core/engine/src/{context,bytecompiler,vm,codeblock}` + `docs/vm.md` |
-| 5 | Bytecode optimizer + polymorphic inline caches in 0.22 | CONFIRMED | `CHANGELOG.md:29-30,128-140,173-189` |
-| 6 | NaN-boxed `JsValue` | CONFIRMED (default; legacy enum behind `jsvalue-enum`) | `core/engine/src/value/inner.rs:1-12` |
-| 7 | `boa_gc` mark-sweep collector with `Trace`/`Finalize` | CONFIRMED (thread-local, 1 MB default threshold — nowhere near V8's generational/concurrent design, as the discussion states) | `core/gc/src/lib.rs:1-5,44-70` |
-| 8 | Builtins inventory (Object…Temporal, modules, eval, `FinalizationRegistry`, `RegExp.escape`, iterator helpers, `Error.prototype.stack`) | CONFIRMED | `core/engine/src/builtins/*`, `CHANGELOG.md:7-9,45-65` |
-| 9 | ICU4X-backed `Intl` | CONFIRMED | root `Cargo.toml` `icu_*` deps; `core/icu_provider` |
-| 10 | `boa_runtime` / `boa_wintertc` (TC55) Web-API layer | CONFIRMED (`boa_runtime` re-exports `boa_wintertc`; the "migration" framing is directionally right) | `core/wintertc/src/lib.rs:1-14`, `core/runtime/src/*` |
-| 11 | No production JIT; Cranelift prototype: 109/196 opcodes, `jit` flag, copy-and-patch + feedback-vector gaps, GC at 10–16% of benchmark time | CONFIRMED nearly verbatim | `https://github.com/boa-dev/boa/discussions/4487` (inspected; exact quotes found, including "Currently 109 of Boa's 196 opcodes are supported" and "Profiling shows GC at 10-16% of V8 benchmark time") |
-| 12 | Tester records panics; `run`/`compare` workflow; `test262_config.toml` ignore lists; `test262.yml` CI | CONFIRMED | `CONTRIBUTING.md:67-118`, `tests/tester`, `test262_config.toml`, `.github/workflows/test262.yml` |
-| 13 | CI runs fmt/clippy/tests/coverage/Miri/fuzz-build/semver | CONFIRMED | `.github/workflows/rust.yml` (coverage :156, tests :197, Miri :316-349, fuzz build-only :351-385) |
-| 14 | Existing fuzz targets (parser-idempotency, bytecompiler-implied, vm-implied), grammar-aware via `Arbitrary`, coverage-guided; VM fuzzer is crash-only, finds no logic errors | CONFIRMED — **and the discussion never mentions this infrastructure** | `tests/fuzz/README.md`, `tests/fuzz/fuzz_targets/*` (excluded from default workspace in root `Cargo.toml`) |
-| 15 | Panic-removal work (`EngineError::Panic`, `js_expect`) in 0.22 | CONFIRMED | `CHANGELOG.md:28,40-43,53,171-203` |
-| 16 | Test262: 50,000+ files; TC39 states coverage is not complete and tests may contain omissions/errors | CONFIRMED verbatim | `https://raw.githubusercontent.com/tc39/test262/main/README.md` (inspected) |
-| 17 | Fuzzilli: FuzzIL-based generation, syntactic-correctness-by-construction, semantic-validity goal, REPRL execution | CONFIRMED | `https://raw.githubusercontent.com/googleprojectzero/fuzzilli/main/Docs/HowFuzzilliWorks.md` (inspected) |
-| 18 | Miri detects UB classes but tests only one execution; passing ≠ sound | CONFIRMED | `https://raw.githubusercontent.com/rust-lang/miri/master/README.md` (inspected) |
-| 19 | Kani: bit-precise model checker for Rust, safety + correctness harnesses | CONFIRMED | `https://raw.githubusercontent.com/model-checking/kani/main/README.md` (inspected) |
-| 20 | Loom: permutes concurrent executions under C11 (with documented unsound/incomplete corners) | CONFIRMED | `https://raw.githubusercontent.com/tokio-rs/loom/master/README.md` (inspected) |
-| 21 | cargo-fuzz/libFuzzer: coverage-guided fuzzing, `cmin`/`tmin`/`coverage` | CONFIRMED | `https://raw.githubusercontent.com/rust-fuzz/cargo-fuzz/main/README.md`, `https://llvm.org/docs/LibFuzzer.html` (inspected) |
-| 22 | ASan/UBSan instrumented detection | CONFIRMED (official Clang docs; kept as tool references) | `https://clang.llvm.org/docs/AddressSanitizer.html`, `https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html` |
-| 23 | WPT gives cross-browser confidence; WebKit requires tests with fixes | CONFIRMED | `https://web-platform-tests.org/`, `https://webkit.org/testing/` (inspected) |
-| 24 | V8 is a C++/generational-GC engine; DOM comes from the embedder, not V8 | CONFIRMED | `https://v8.dev/docs` (inspected) |
-| 25 | Rust `unsafe` transfers safety responsibility to the programmer (soundness obligation) | CONFIRMED | `https://doc.rust-lang.org/reference/behavior-considered-undefined.html` (inspected) |
+| #   | Claim in discussion                                                                                                                                                          | Verdict                                                                                                                            | Evidence                                                                                                                                                                                                |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Boa is at v0.22.0, released late Aug 2026                                                                                                                                    | CONFIRMED (1-day drift: repo says 2026-08-27, discussion says Aug 28)                                                              | `Cargo.toml:29`, `CHANGELOG.md:3`                                                                                                                                                                       |
+| 2   | ~95.6% Test262 conformance                                                                                                                                                   | SUBSTANTIALLY CONFIRMED (independent snapshots agree at 95.4–95.6%; repo computes the figure at runtime, it is not pinned in-tree) | `tests/tester` computes pass rate at runtime; `README.md:20` says ">90%"; corroborated by independent public snapshots (web-search snippets, not used as authoritative evidence)                        |
+| 3   | Self-described "experimental" engine                                                                                                                                         | CONFIRMED                                                                                                                          | `README.md:20`                                                                                                                                                                                          |
+| 4   | Pipeline: parser → AST → bytecompiler → bytecode → register VM; `CodeBlock` holds bytecode/constants/bindings/exception info/ICs/registers                                   | CONFIRMED                                                                                                                          | `core/engine/src/{context,bytecompiler,vm,codeblock}` + `docs/vm.md`                                                                                                                                    |
+| 5   | Bytecode optimizer + polymorphic inline caches in 0.22                                                                                                                       | CONFIRMED                                                                                                                          | `CHANGELOG.md:29-30,128-140,173-189`                                                                                                                                                                    |
+| 6   | NaN-boxed `JsValue`                                                                                                                                                          | CONFIRMED (default; legacy enum behind `jsvalue-enum`)                                                                             | `core/engine/src/value/inner.rs:1-12`                                                                                                                                                                   |
+| 7   | `boa_gc` mark-sweep collector with `Trace`/`Finalize`                                                                                                                        | CONFIRMED (thread-local, 1 MB default threshold — nowhere near V8's generational/concurrent design, as the discussion states)      | `core/gc/src/lib.rs:1-5,44-70`                                                                                                                                                                          |
+| 8   | Builtins inventory (Object…Temporal, modules, eval, `FinalizationRegistry`, `RegExp.escape`, iterator helpers, `Error.prototype.stack`)                                      | CONFIRMED                                                                                                                          | `core/engine/src/builtins/*`, `CHANGELOG.md:7-9,45-65`                                                                                                                                                  |
+| 9   | ICU4X-backed `Intl`                                                                                                                                                          | CONFIRMED                                                                                                                          | root `Cargo.toml` `icu_*` deps; `core/icu_provider`                                                                                                                                                     |
+| 10  | `boa_runtime` / `boa_wintertc` (TC55) Web-API layer                                                                                                                          | CONFIRMED (`boa_runtime` re-exports `boa_wintertc`; the "migration" framing is directionally right)                                | `core/wintertc/src/lib.rs:1-14`, `core/runtime/src/*`                                                                                                                                                   |
+| 11  | No production JIT; Cranelift prototype: 109/196 opcodes, `jit` flag, copy-and-patch + feedback-vector gaps, GC at 10–16% of benchmark time                                   | CONFIRMED nearly verbatim                                                                                                          | `https://github.com/boa-dev/boa/discussions/4487` (inspected; exact quotes found, including "Currently 109 of Boa's 196 opcodes are supported" and "Profiling shows GC at 10-16% of V8 benchmark time") |
+| 12  | Tester records panics; `run`/`compare` workflow; `test262_config.toml` ignore lists; `test262.yml` CI                                                                        | CONFIRMED                                                                                                                          | `CONTRIBUTING.md:67-118`, `tests/tester`, `test262_config.toml`, `.github/workflows/test262.yml`                                                                                                        |
+| 13  | CI runs fmt/clippy/tests/coverage/Miri/fuzz-build/semver                                                                                                                     | CONFIRMED                                                                                                                          | `.github/workflows/rust.yml` (coverage :156, tests :197, Miri :316-349, fuzz build-only :351-385)                                                                                                       |
+| 14  | Existing fuzz targets (parser-idempotency, bytecompiler-implied, vm-implied), grammar-aware via `Arbitrary`, coverage-guided; VM fuzzer is crash-only, finds no logic errors | CONFIRMED — **and the discussion never mentions this infrastructure**                                                              | `tests/fuzz/README.md`, `tests/fuzz/fuzz_targets/*` (excluded from default workspace in root `Cargo.toml`)                                                                                              |
+| 15  | Panic-removal work (`EngineError::Panic`, `js_expect`) in 0.22                                                                                                               | CONFIRMED                                                                                                                          | `CHANGELOG.md:28,40-43,53,171-203`                                                                                                                                                                      |
+| 16  | Test262: 50,000+ files; TC39 states coverage is not complete and tests may contain omissions/errors                                                                          | CONFIRMED verbatim                                                                                                                 | `https://raw.githubusercontent.com/tc39/test262/main/README.md` (inspected)                                                                                                                             |
+| 17  | Fuzzilli: FuzzIL-based generation, syntactic-correctness-by-construction, semantic-validity goal, REPRL execution                                                            | CONFIRMED                                                                                                                          | `https://raw.githubusercontent.com/googleprojectzero/fuzzilli/main/Docs/HowFuzzilliWorks.md` (inspected)                                                                                                |
+| 18  | Miri detects UB classes but tests only one execution; passing ≠ sound                                                                                                        | CONFIRMED                                                                                                                          | `https://raw.githubusercontent.com/rust-lang/miri/master/README.md` (inspected)                                                                                                                         |
+| 19  | Kani: bit-precise model checker for Rust, safety + correctness harnesses                                                                                                     | CONFIRMED                                                                                                                          | `https://raw.githubusercontent.com/model-checking/kani/main/README.md` (inspected)                                                                                                                      |
+| 20  | Loom: permutes concurrent executions under C11 (with documented unsound/incomplete corners)                                                                                  | CONFIRMED                                                                                                                          | `https://raw.githubusercontent.com/tokio-rs/loom/master/README.md` (inspected)                                                                                                                          |
+| 21  | cargo-fuzz/libFuzzer: coverage-guided fuzzing, `cmin`/`tmin`/`coverage`                                                                                                      | CONFIRMED                                                                                                                          | `https://raw.githubusercontent.com/rust-fuzz/cargo-fuzz/main/README.md`, `https://llvm.org/docs/LibFuzzer.html` (inspected)                                                                             |
+| 22  | ASan/UBSan instrumented detection                                                                                                                                            | CONFIRMED (official Clang docs; kept as tool references)                                                                           | `https://clang.llvm.org/docs/AddressSanitizer.html`, `https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html`                                                                                      |
+| 23  | WPT gives cross-browser confidence; WebKit requires tests with fixes                                                                                                         | CONFIRMED                                                                                                                          | `https://web-platform-tests.org/`, `https://webkit.org/testing/` (inspected)                                                                                                                            |
+| 24  | V8 is a C++/generational-GC engine; DOM comes from the embedder, not V8                                                                                                      | CONFIRMED                                                                                                                          | `https://v8.dev/docs` (inspected)                                                                                                                                                                       |
+| 25  | Rust `unsafe` transfers safety responsibility to the programmer (soundness obligation)                                                                                       | CONFIRMED                                                                                                                          | `https://doc.rust-lang.org/reference/behavior-considered-undefined.html` (inspected)                                                                                                                    |
 
 ### Explicitly unverifiable / out-of-scope items (honest gaps, none load-bearing)
 
@@ -132,18 +132,18 @@ phases that follow.
 1. **Extend, don't rebuild.** The discussion presents Miri, fuzzing, coverage,
    and Test262-comparison CI as things to create. They exist: a Miri CI job
    (`rust.yml:316-349`, running tests filtered by `miri`), three cargo-fuzz
-   targets that are only *built* in CI but never *run* (`rust.yml:351-385`,
+   targets that are only _built_ in CI but never _run_ (`rust.yml:351-385`,
    `tests/fuzz/*`), a coverage job (`rust.yml:156`), and
    `boa_tester run|compare` (`CONTRIBUTING.md:67-118`). The plan extends each:
    run fuzzers on schedules with budgets, broaden the Miri filter, add sanitizer
-   + stress-GC configs, and gate on `compare`.
+   - stress-GC configs, and gate on `compare`.
 2. **"100% of applicable Test262" must not be a hard gate for downstream work.**
    As a literal gate it blocks all progress on criteria outside our control
    (spec churn, test bugs, unsupported-proposal tests). Replace with: a pinned
    Test262 commit + a fully audited ignore list (every entry justified, linked,
    expiring) + a monotonic trend gate (pass count never decreases, ignore list
    only shrinks except by reviewed exception). Absolute conformance keeps rising
-   as a *metric*; the *gate* is no-regression.
+   as a _metric_; the _gate_ is no-regression.
 3. **Differential testing must start with one oracle, not three.** Standing up
    Boa↔V8↔SpiderMonkey↔JSC on day one triples harness/normalizer/triage work
    before any bug is found. Phase P3 starts with a single pinned oracle engine
@@ -156,7 +156,7 @@ phases that follow.
    valid-only generation (robustness) and invalid-input rejection (only for
    surfaces that actually accept untrusted bytecode, if any).
 5. **Formal methods and mutation testing are misordered in the discussion.**
-   Kani/Loom/mutation belong *after* the choke-point inventory and *after* the
+   Kani/Loom/mutation belong _after_ the choke-point inventory and _after_ the
    suites they measure exist: Kani harnesses target inventoried kernels
    (P6); Loom applies only if P0 finds real concurrent code (`boa_gc` is
    currently thread-local — `core/gc/src/lib.rs:44-51` — so Loom may be
@@ -178,7 +178,7 @@ inventory → harden harness → trend-gated conformance → differential →
 fuzzing → validity models → unsafe/formal → coverage/mutation/gates, and no
 prerequisite project is missing. The differences are the six corrections above
 plus one emphasis shift: the discussion treats "high-confidence interpreter" as
-the *output* of fixing bugs; this plan treats the *assurance system* (harness,
+the _output_ of fixing bugs; this plan treats the _assurance system_ (harness,
 federation of oracles, fuzz fleet, gates) as the primary deliverable, with bug
 fixes as its continuously-verified byproduct. That is what makes "only progress,
 no regression" mechanically enforceable rather than aspirational.
@@ -254,7 +254,7 @@ readiness dashboard that must stay green.
 - New JIT tiers, bytecode→IR→native work, deoptimization, tiering counters,
   feedback vectors beyond what testing needs (Project-2).
 - GC redesign, generational/concurrent collection, allocation fast paths as
-  features (GC *testing/stress* is in scope; GC *reimplementation* is not).
+  features (GC _testing/stress_ is in scope; GC _reimplementation_ is not).
 - WebAssembly engine or JS↔Wasm integration; new Web APIs; snapshot/startup
   systems; inspector/debugger features beyond what failure diagnosis needs.
 - Absolute "100% Test262" as a blocking gate (see correction 2); absolute
@@ -303,7 +303,7 @@ before everything).
 ### Key decisions (and rejected alternatives)
 
 1. **Extend Boa's harness; do not build a parallel one.** `boa_tester
-   run|compare`, `test262_config.toml`, `test262.yml`, the Miri/coverage/fuzz
+run|compare`, `test262_config.toml`, `test262.yml`, the Miri/coverage/fuzz
    CI jobs, and the three fuzz targets are the foundation. Rejected: a new
    from-scratch runner (duplicates years of edge-case handling in flag parsing,
    negative tests, async/expected-failure semantics).
@@ -370,7 +370,7 @@ before everything).
 1. **After every landed unit:** the full fast gate set passes — unit tests,
    fmt, clippy, regression DB, and the affected Test262 subset judged by
    `compare` against baseline (P1.5). No exceptions.
-2. **After every phase:** the *entire* applicable battery passes, not just the
+2. **After every phase:** the _entire_ applicable battery passes, not just the
    phase's own checks — all prior phases' gates are re-run (prior Test262
    subsets go green again, regression DB grows and stays green, differential
    corpus stays at zero untriaged, fuzz smoke stays clean, sanitizer/Miri
@@ -583,11 +583,12 @@ breaks on detached HEAD; P0 pin must keep a `main` ref or this fn must change.
 `results.rs:173-184`); prints table + fixed/broken/new-panics/panic-fixes
 (`compute_result_diff`, `results.rs:434-485`); **always exits 0**
 (`results.rs:411`). P1.2/P1.5: add `--fail-on untriaged,crash,timeout,skip`
-+ nonzero exit on breach (P1 owns `compare` strictness; P7 consumes the flag,
-it adds no second one). Gotchas: `Ignored→Failed` silently dropped
-(`results.rs:459`); diff iterates base only, new-only tests/suites invisible
-(`results.rs:443,471`); text-mode diffs print `base-new`, markdown `new-base`
-(`results.rs:362-376` vs `:255-284`).
+
+- nonzero exit on breach (P1 owns `compare` strictness; P7 consumes the flag,
+  it adds no second one). Gotchas: `Ignored→Failed` silently dropped
+  (`results.rs:459`); diff iterates base only, new-only tests/suites invisible
+  (`results.rs:443,471`); text-mode diffs print `base-new`, markdown `new-base`
+  (`results.rs:362-376` vs `:255-284`).
 
 **Ignore-list parsing** (`main.rs:48-109`, `read.rs:156-227`).
 `Ignored{tests,features,flags}` (`main.rs:71-78`); `contains_test` = **substring**
@@ -640,9 +641,10 @@ mutually queryable.
 
 **Extension-point summary**: counted outcomes→`main.rs:794-804,546-578` +
 `exec/mod.rs:100-126,166-227,504-518`; strict compare→`results.rs:170-220,411-485`
-+ `Cli::Compare` (`main.rs:165-178,241-246`); config lint→new subcommand +
-`main.rs:48-109`; crash accounting→`exec/mod.rs:504-508` + `write_json`
-(`results.rs:84-159`); CI→`test262.yml` + `test262_comment.yml:17` gate.
+
+- `Cli::Compare` (`main.rs:165-178,241-246`); config lint→new subcommand +
+  `main.rs:48-109`; crash accounting→`exec/mod.rs:504-508` + `write_json`
+  (`results.rs:84-159`); CI→`test262.yml` + `test262_comment.yml:17` gate.
 
 **Validation / gate.**
 
@@ -804,7 +806,7 @@ short keys (`n/a/av/s/t/f/r`, `results.rs:13-35,761-804`) into `latest.json`
 fixed/broken/new-panics/panic-fixes (`results.rs:170-220,414-485`); note
 `Ignored->Failed` is deliberately not reported as broken (`results.rs:459`) —
 un-ignoring without fixing is invisible to `compare`, so the gap matrix must
-track ignore removals separately. CI today only *comments* PR conformance
+track ignore removals separately. CI today only _comments_ PR conformance
 (`.github/workflows/test262.yml:43-78`, base from `boa-dev/data`); `compare`
 always exits 0 (`results.rs:411`), so P2's trend gate needs a new strict/fail
 flag (P1.5 owns it; P2 consumes it).
@@ -826,24 +828,25 @@ the previous matrix to prove monotonicity.
 
 **5. Fix-loop mechanics per area (P2.2-2.4).** Recent conformance-fix shape
 (`git log --oneline`, Sep 2026): `fix(string)` touched `core/string/src/str.rs`
-+ `core/string/src/tests.rs` (a93e0b3f) — note the StringToNumber kernel lives
-in `boa_string`, not `builtins/string`; `fix(engine)` try/finally touched
-`bytecompiler/*` + `core/engine/src/tests/control_flow/mod.rs` (970ea933);
-`fix(engine)` with-statement touched bytecompiler+vm+environments plus an
-`insta-bytecode` snapshot (5cee37eb). So: choke-point fixes (values, property
-lookup, environments, dispatch) land in `core/engine/src/{bytecompiler,vm,
+
+- `core/string/src/tests.rs` (a93e0b3f) — note the StringToNumber kernel lives
+  in `boa_string`, not `builtins/string`; `fix(engine)` try/finally touched
+  `bytecompiler/*` + `core/engine/src/tests/control_flow/mod.rs` (970ea933);
+  `fix(engine)` with-statement touched bytecompiler+vm+environments plus an
+  `insta-bytecode` snapshot (5cee37eb). So: choke-point fixes (values, property
+  lookup, environments, dispatch) land in `core/engine/src/{bytecompiler,vm,
 environments,object}` with tests in `core/engine/src/tests/...`; isolated
-builtin fixes land in `builtins/<obj>/mod.rs` + sibling `tests.rs`, except
-string/number kernels which live in `core/string`. Bytecode-shape changes must
-update `tests/insta-bytecode` snapshots. Every fix: `run -s <affected>` +
-`compare` must show strictly-fewer failures, zero new `F`/`P`; upstream-suspect
-tests get a minimal reproducer filed to tc39/test262 + audited-ignore with
-expiry (P2.4). Spec-seam tests (P2.3) go in `core/engine/src/tests/` with
-`// https://tc39.es/...#sec-...` citations, following the existing step-comment
-idiom.
+  builtin fixes land in `builtins/<obj>/mod.rs` + sibling `tests.rs`, except
+  string/number kernels which live in `core/string`. Bytecode-shape changes must
+  update `tests/insta-bytecode` snapshots. Every fix: `run -s <affected>` +
+  `compare` must show strictly-fewer failures, zero new `F`/`P`; upstream-suspect
+  tests get a minimal reproducer filed to tc39/test262 + audited-ignore with
+  expiry (P2.4). Spec-seam tests (P2.3) go in `core/engine/src/tests/` with
+  `// https://tc39.es/...#sec-...` citations, following the existing step-comment
+  idiom.
 
 **6. WPT current state + integration points (P2.5).** `tests/wpt` (`boa_wpt`
-crate) runs WPT *today* as plain `cargo test -p boa_wpt`: `build.rs` shallow-
+crate) runs WPT _today_ as plain `cargo test -p boa_wpt`: `build.rs` shallow-
 clones `web-platform-tests/wpt` at `rev` from `test_wpt_config.toml:1` into
 `../../tests_wpt` and exports `WPT_ROOT` (`build.rs:12-83`); `lib.rs` builds a
 `Context` with `boa_runtime` console+fetch extensions, `self`/`location`
@@ -903,7 +906,7 @@ Test262 trend gate.
    going forward.
 3. **Area mapping is path-prefix; esid/feature refinement deferred.**
    The plan sketches `test/language/... -> parser/bytecompiler/VM by
-   esid/feature`. Implemented deterministic path-prefix areas
+esid/feature`. Implemented deterministic path-prefix areas
    (`builtin:<B>`, `language:<seg>`, `intl:<seg>`, `staging:<seg>`,
    `annexB:<seg>`); features/esid recorded per entry for human triage.
    Why: esids are free-text spec titles, unreliable for automation.
@@ -943,7 +946,7 @@ Test262 trend gate.
 9. **WPT gate design details.** Ignored files are SKIPPED (never
    executed) and recorded with their matched pattern; `wpt-report`
    breaches on stale patterns. Records append to `$WPT_OUT` under a
-   process lock. Harness-*setup* failures (missing testharness.js,
+   process lock. Harness-_setup_ failures (missing testharness.js,
    unregistrable callbacks) still panic by design — only verdicts are
    counted. Compile-time rstest excludes with TODOs were migrated to
    audited config ignores; `idlharness` (non-test helpers) and the
@@ -1001,6 +1004,7 @@ Build as a new `tools/differential/` crate reusing `boa_engine` + `boa_runtime`
 in-process for the Boa side and a subprocess for the oracle.
 
 **1. Boa-side headless driver — reuse `Context::eval`, not the CLI**
+
 - Drive Boa in-process: `Context::eval(Source)` at `core/engine/src/context/mod.rs:205`
   (`Script::parse` + `evaluate`). `boa_engine` re-exports `Source` + prelude at
   `core/engine/src/lib.rs:146`, `core/engine/src/lib.rs:149`, so the harness depends only
@@ -1025,10 +1029,11 @@ in-process for the Boa side and a subprocess for the oracle.
   test in both modes unless flagged (`tests/tester/src/exec/mod.rs:166`).
 
 **2. Oracle side + runner contract (P3.1, P3.2)**
+
 - Oracle = pinned headless binary (`d8`/`jsshell`/`jsc`) invoked as a subprocess with the
   program on stdin/file; compare against the same per-case timeout (P1.2 mechanism, see §4).
   Runner contract (for P3.5 second-oracle repetition): `run_oracle(binary, program, timeout)
-  -> OracleOutcome { exit_code, stdout, stderr }`; record binary hash + flags in
+-> OracleOutcome { exit_code, stdout, stderr }`; record binary hash + flags in
   `docs/baseline.md`.
 - Boa CLI is a usable fallback oracle-style interface but not the primary path: file eval at
   `cli/src/main.rs:449`, dispatch at `cli/src/main.rs:612`; exit code is 0 on success, nonzero
@@ -1037,6 +1042,7 @@ in-process for the Boa side and a subprocess for the oracle.
   non-`undefined` (`cli/src/main.rs:524`) — a diff harness must not rely on that filtering.
 
 **3. Observable-state capture points (P3.2)**
+
 - Return value: `JsValue::display()` (`core/engine/src/value/mod.rs:964`) for canonical text;
   `JsValue::to_string(context)` (`core/engine/src/value/mod.rs:974`) for `String(x)` semantics.
 - Thrown errors — classify, don't string-compare: `JsError::try_native`
@@ -1058,6 +1064,7 @@ in-process for the Boa side and a subprocess for the oracle.
   `AssertWithOp`/`InspectContext` hooks (`core/engine/src/lib.rs:238`, `core/engine/src/lib.rs:225`).
 
 **4. Timeout / resource-cap mechanisms (all exist — compose them; P1 owns the tester mechanism, P3 reuses it)**
+
 - `RuntimeLimits` (`core/engine/src/vm/runtime_limits.rs:3`; defaults `core/engine/src/vm/runtime_limits.rs:17`):
   `set_loop_iteration_limit` (`core/engine/src/vm/runtime_limits.rs:47`),
   `set_recursion_limit` (`core/engine/src/vm/runtime_limits.rs:94`),
@@ -1079,13 +1086,15 @@ in-process for the Boa side and a subprocess for the oracle.
   (`tests/tester/src/exec/mod.rs:275`) → `Panic` outcome (`tests/tester/src/main.rs:795`).
 
 **5. Normalizer (P3.2) — explicit table, reuse `is_error_type` shape**
+
 - Compare (value-display | error-kind | console-lines | state-dump); normalize via a reviewed
-  table: error *message* text ignored (kind compared, cf. `tests/tester/src/exec/mod.rs:598`),
+  table: error _message_ text ignored (kind compared, cf. `tests/tester/src/exec/mod.rs:598`),
   stack traces dropped, `console.time`/identity/`Date.now` patterns redacted, `undefined`
   completion vs empty stdout unified. Every rule needs a fixture proving it never masks a
   real mismatch (P3 gate: 100-fixture drill).
 
 **6. Corpora, verdicts, triage queue (P3.3, P3.4)**
+
 - v1 corpus = pinned Test262 programs + `tests/regression/*` reproducers (P1.1) + curated
   adversarial set over P0 choke points; P4 generators feed back later.
 - Outcome taxonomy: define a differential-crate-local outcome type (e.g.
@@ -1099,6 +1108,7 @@ in-process for the Boa side and a subprocess for the oracle.
   (P4 `tmin`) before closure. Triage-queue JSON follows the shared P1.1 store conventions.
 
 **7. Exact touch points**
+
 - NEW `tools/differential/` crate: `boa_side.rs` (Context setup/run), `oracle.rs` (subprocess
   runner), `capture.rs` (Logger impl + state dump), `normalize.rs` (table), `queue.rs`
   (verdict store on `TestResult` JSON), `main.rs` (`run`/`triage` subcommands mirroring
@@ -1107,12 +1117,13 @@ in-process for the Boa side and a subprocess for the oracle.
   ~70 lines deliberately; reuse the P1.2 per-case timeout mechanism (P1 owns it).
 
 **8. Gotchas**
+
 - `Display for JsError` includes backtrace (`core/engine/src/error/mod.rs:856`) — raw string
   compare always diverges; compare kind+message only.
 - `RuntimeLimit`/`NoInstructionsRemain` are engine errors, not JS throws — map to
   timeout/divergence outcomes, never to "both threw".
 - `SimpleJobExecutor` bails on first error and uses virtual-clock jobs
-  (`core/engine/src/job.rs:863`); still call `run_jobs` after *every* eval or promises leak
+  (`core/engine/src/job.rs:863`); still call `run_jobs` after _every_ eval or promises leak
   across cases — use a fresh `Context` per case (tester does: `tests/tester/src/exec/mod.rs:534`).
 - CLI `Executor` never idles-out headless (`cli/src/executor.rs:262`) — do not reuse for diff.
 - `instructions_remaining` requires the `fuzz` feature; without it there is no in-engine
@@ -1247,7 +1258,7 @@ in-process for the Boa side and a subprocess for the oracle.
     `global_binding::<BuiltinTypedArray>` line; test262's
     testTypedArray.js harness (2080 includers asserting the global) is
     served by runner-side injection (`var TypedArray =
-    Object.getPrototypeOf(Uint8Array)`) in the tester AND the
+Object.getPrototypeOf(Uint8Array)`) in the tester AND the
     differential corpus, like other runners. Full loop: repro-first
     proof (stash), engine unit test, DB entry `typedarray-no-global`,
     fuzz seed, green audit, full Test262 steady at 51440 passed
@@ -1322,7 +1333,7 @@ in-process for the Boa side and a subprocess for the oracle.
 16. **Oracle quirk: stale indirect-eval completion (Rule 7, 1088
     entries).** Shard-1's `undefined → function:*` value cluster is a
     SpiderMonkey completion-slot leak, minimized to `var o = {}; o.b
-    = function () {};` + `if (false) { throw 1; }` (jsshell: the
+= function () {};` + `if (false) { throw 1; }` (jsshell: the
     function; Boa/node: undefined). Full matrix: value-producing
     statements and try/catch write the slot, but
     if-false-without-else, `var`, bare blocks, `;`, and empty loops
@@ -1333,8 +1344,7 @@ in-process for the Boa side and a subprocess for the oracle.
     corpus-reconstructed programs agree with Boa on all 1088 (zero
     Boa-bug candidates, zero timeouts). Bulk verdicts split pure
     value (750) vs value + known sloppy-eval order companion (338);
-    full-state combos stay hand-triaged. Untriaged shard-1: 3203 →
-    2115. Shards language/intl402 have since completed.
+    full-state combos stay hand-triaged. Untriaged shard-1: 3203 → 2115. Shards language/intl402 have since completed.
 17. **Full-corpus run finished (85,904 cases); shard-1 triage 2115 → 85
     via rules 8–27.** All five shards completed with zero failures
     (builtins 43159, language 34099, intl402 5232, staging 2220, annexB
@@ -1342,29 +1352,29 @@ in-process for the Boa side and a subprocess for the oracle.
     ctor-format+Float16 620, pure isConstructor collision 295, RegExp
     inline-modifiers 70+70, new-Unicode-scripts 22+22, RegExp.escape 38,
     UCD/emoji/folding tail 278 (every case node-adjudicated: 250 probes
-    + 10 negated + 8 full RGI files + folding, all V8-with-Boa),
-    Symbol-primitive guards 46 (jsshell spec bug), missing-API direct
-    203 + second-order 226 (upsert, float16, isError, base64/hex,
-    rawJSON, try, pause, f16round, keyed, sumPrecise, waitAsync 68,
-    toTemporalInstant 10), Promise resolve-precedence 16, TypedArray
-    [[Set]] 12, JSON reviver 10, iterator toStringTag 8,
-    defineProperty order 4, freeze-RAB 2, ThrowTypeError identity 8,
-    native-syntax shape 2. Throw-combo state companions were all
-    classified (102 groups: post-throw unassignment, short-circuited
-    counters, pre-write targets, ctor-format, shell-global filters)
-    behind a frozen reviewed-pair guard. Notable: Boa is ahead of V8
-    too on sumPrecise, allKeyed/allSettledKeyed, unique-per-realm
-    %ThrowTypeError%, and trailing-garbage leniency (V8 strict where
-    the test expects leniency — verdict rests on jsshell's missing API
-    regardless). Mismatch triage found ZERO engine bugs — Boa correct
-    in every adjudicated case; the run's only engine bugs remain the 2
-    one-sided crash roots (join-abort, cyclic-proto), filed + regressed.
-    Results durably snapshotted in `differential-runs/` (raw 2.2 GB +
-    verified 5 MB zstd tarball + SHA256SUMS + triage workflow backup;
-    raw gitignored, tarball committable) after a reboot proved /tmp
-    mortal. Remaining for P3.5-complete: shard-1 tail 67 (both-ok
-    state/value + 5 empty-field) + shards 2–5 (~17.8k, bulk rules adapt
-    per shard) + verdicts export + gates.
+    - 10 negated + 8 full RGI files + folding, all V8-with-Boa),
+      Symbol-primitive guards 46 (jsshell spec bug), missing-API direct
+      203 + second-order 226 (upsert, float16, isError, base64/hex,
+      rawJSON, try, pause, f16round, keyed, sumPrecise, waitAsync 68,
+      toTemporalInstant 10), Promise resolve-precedence 16, TypedArray
+      [[Set]] 12, JSON reviver 10, iterator toStringTag 8,
+      defineProperty order 4, freeze-RAB 2, ThrowTypeError identity 8,
+      native-syntax shape 2. Throw-combo state companions were all
+      classified (102 groups: post-throw unassignment, short-circuited
+      counters, pre-write targets, ctor-format, shell-global filters)
+      behind a frozen reviewed-pair guard. Notable: Boa is ahead of V8
+      too on sumPrecise, allKeyed/allSettledKeyed, unique-per-realm
+      %ThrowTypeError%, and trailing-garbage leniency (V8 strict where
+      the test expects leniency — verdict rests on jsshell's missing API
+      regardless). Mismatch triage found ZERO engine bugs — Boa correct
+      in every adjudicated case; the run's only engine bugs remain the 2
+      one-sided crash roots (join-abort, cyclic-proto), filed + regressed.
+      Results durably snapshotted in `differential-runs/` (raw 2.2 GB +
+      verified 5 MB zstd tarball + SHA256SUMS + triage workflow backup;
+      raw gitignored, tarball committable) after a reboot proved /tmp
+      mortal. Remaining for P3.5-complete: shard-1 tail 67 (both-ok
+      state/value + 5 empty-field) + shards 2–5 (~17.8k, bulk rules adapt
+      per shard) + verdicts export + gates.
 18. **P3.5 COMPLETE (2026-10-03): driver hardening, tail verdicts,
     node adjudication, 42,726 exported verdicts, P4 unblocked.**
     (a) Driver hardening: IIFE-wrapped harness + toJSON-immune
@@ -1483,6 +1493,7 @@ impl seeds interner with `a..=h` (`common.rs:21-25`), derives AST via
 `Debug` prints the source (`common.rs:88-92`) — reuse for crash artifacts.
 
 Per-target behavior, budgets, asserts (all three targets read line by line).
+
 - `parser-idempotency.rs:15-64`: AST→source→parse→source→parse; discards
   first-parse errors (`parser-idempotency.rs:23`), `expect`s second parse
   (`parser-idempotency.rs:40-42`), asserts interner length unchanged across
@@ -1491,7 +1502,7 @@ Per-target behavior, budgets, asserts (all three targets read line by line).
   (parse-only). Gotcha: `do_fuzz` always returns `Ok`, so `Corpus::Reject`
   (`parser-idempotency.rs:68-74`) is dead — libFuzzer keeps everything.
 - `bytecompiler-implied.rs:11-27`: `Context::builder().interner(..)
-  .instructions_remaining(0)` (`bytecompiler-implied.rs:12-16`), then
+.instructions_remaining(0)` (`bytecompiler-implied.rs:12-16`), then
   `Script::parse` (`bytecompiler-implied.rs:17-21`) + `codeblock`
   (`bytecompiler-implied.rs:22`). Budget 0 = compile-only by construction:
   any eval would instantly throw `NoInstructionsRemain`
@@ -1503,10 +1514,10 @@ Per-target behavior, budgets, asserts (all three targets read line by line).
   by design (`tests/fuzz/README.md:47-51`); infinite loops become
   deterministic `Throw` via the fuel check in `execute_one`
   (`core/engine/src/vm/mod.rs:777-790`, decrement `core/engine/src/vm/mod.rs:789`).
-Fuel plumbing (gated on `fuzz`): field (`core/engine/src/context/mod.rs:102-104`),
-builder setter (`core/engine/src/context/mod.rs:1186-1189`), `build` wiring
-(`core/engine/src/context/mod.rs:1254-1255`); feature =
-`["boa_ast/arbitrary", "boa_interner/arbitrary"]` (`core/engine/Cargo.toml:62`).
+  Fuel plumbing (gated on `fuzz`): field (`core/engine/src/context/mod.rs:102-104`),
+  builder setter (`core/engine/src/context/mod.rs:1186-1189`), `build` wiring
+  (`core/engine/src/context/mod.rs:1254-1255`); feature =
+  `["boa_ast/arbitrary", "boa_interner/arbitrary"]` (`core/engine/Cargo.toml:62`).
 
 Scheduling design (P4.1). Keep build job as-is; add: (a) per-PR smoke —
 `cargo fuzz run --dev -s none <target> -- -max_total_time=300`, fixed
@@ -1519,6 +1530,7 @@ jobs. Corpus pipeline (P4.6): `cargo fuzz cmin/tmin/coverage <target>`;
 `FuzzSource`'s `Debug` (`common.rs:88-92`) gives the minimizer-ready source.
 
 Semantic-oracle extension points per target (P4.2; keep crash detection).
+
 - parser: already an idempotency oracle; extend `do_fuzz`
   (`parser-idempotency.rs:15`) with error-determinism (same bytes → same
   error kind/position twice) and a third parse→print fixpoint check.
@@ -1602,7 +1614,7 @@ only `Sym`s are remapped — arbitrary string literals are an open TODO
 - Seeded-crash drill: reintroduce five historical crash bugs (distinct
   signatures) → fleet rediscovers all five within the smoke budget; minimizes
   each; dedupes correctly.
-- Oracle-graduate drill: revert three historical *logic* bugs → semantic modes
+- Oracle-graduate drill: revert three historical _logic_ bugs → semantic modes
   (not crash detection) flag all three.
 - A full scheduled cycle completes with zero untriaged crashes and
   non-decreasing per-target coverage.
@@ -1635,7 +1647,7 @@ pending; their notes will extend this section.
    a-h universe made the vm leg unconditionally sound, but un-remapped
    string literals can reach `globalThis["WeakRef"]`, so both eval targets
    filter; bytecompiler needs no filter — compilation runs no user code).
-   A divergence on a *filtered* program is still triaged, never dismissed.
+   A divergence on a _filtered_ program is still triaged, never dismissed.
 4. Churn gate `STRESS_MAX_ALLOCS = 100_000` + `should_stress` (addition, not
    in plan). A real libFuzzer smoke produced a 25-char fuel-saturated
    `while (import(this)) {}` (132k normal-leg allocs) running 38x slower
@@ -1655,7 +1667,7 @@ pending; their notes will extend this section.
    stressed 51,440/0 in 203s (~1.8x), `compare --fail-on=regression` green.
    At the normal 60s budget the gate correctly breached once:
    `regress-1507322-deep-weakmap` (100k-deep ephemeron chain) needs ~58s
-   stressed vs 0.44s normal with the *same passing outcome* — a budget
+   stressed vs 0.44s normal with the _same passing outcome_ — a budget
    breach, not an engine bug (proven via `run-single`: `{"outcome":"O"}`).
    The scheduled stress job therefore uses `--timeout 300` (5x headroom,
    documented in the workflow); N=1 engagement was proven separately (6x
@@ -1782,7 +1794,7 @@ remain; their notes will extend this section.
     parameters"), and a BEHAVIORAL self-check (startup must print
     `[COV] registered guard range`, else the flags were silently
     dropped). 55,813 edges; Fuzzilli's `[Coverage] Initialized, 55814
-    edges` (+1 is its own indexing) confirms the SHM handshake live.
+edges` (+1 is its own indexing) confirms the SHM handshake live.
 18. Three protocol/infra traps, all verified against upstream sources
     (never assumed): (a) the exec magic is `exec`, not the `cexe` of
     older Fuzzilli/docs — every execution failed until the child was
@@ -1813,7 +1825,7 @@ remain; their notes will extend this section.
     (ii) `class C5 extends BigUint64Array` + `using v6 = C5` in a
     constructor → index-OOB at `vm/opcode/define/mod.rs:126` (7 lines);
     (iii) a Promise/async-executor shape → `EnginePanic: cannot fail per
-    spec` (caught only because the adapter aborts on engine panics —
+spec` (caught only because the adapter aborts on engine panics —
     the CLI exits 1). Reproducers preserved under
     `pipeline/triage/fuzzilli-trial15/` (gitignored working state);
     fixes are out of P-4 scope and filed as findings, not fixes.
@@ -1944,7 +1956,7 @@ exit-criteria verdict closes the section.
 ### P5 — Bytecode validity model, VM-level testing, metamorphic equivalence
 
 **Goal.** Make the VM testable below the JS surface without false positives:
-first write down what valid bytecode *is*, then generate valid-only inputs at
+first write down what valid bytecode _is_, then generate valid-only inputs at
 scale, and add metamorphic equivalence oracles that need no hand-written
 expected outputs.
 
@@ -1960,7 +1972,7 @@ plus machine-checkable assertions where practical (a `verify(&CodeBlock)`
 routine used by tests/fuzzers; whether it also runs in production builds is a
 separate Project-2 decision and defaults to no).
 5.2. **Valid-only bytecode generator + VM differential.** Build a structured
-generator producing *valid* bytecode/ASTs (extending the existing
+generator producing _valid_ bytecode/ASTs (extending the existing
 `Arbitrary` machinery in `tests/fuzz/fuzz_targets/common.rs`): execute under
 Boa vs the P3 oracle (via JS lifting where the unit is expressible, else
 Boa-vs-Boa across configurations such as normal vs GC-stress vs instrumented
@@ -1996,6 +2008,7 @@ VM-level generation, metamorphic oracles, opcode matrix.
 `handlers: ThinVec<Handler>`, `ic: Box<[InlineCache]>`, `source_info`,
 `global_lexs/global_fns/global_vars`, `debug_id`.
 Invariants to document + check:
+
 - Bytecode: `Bytecode.bytes: Box<[u8]>` (`core/engine/src/vm/opcode/mod.rs:184-188`)
   decodes fully via `Bytecode::next_instruction` (`core/engine/src/vm/opcode/mod.rs:490-509`);
   every `Address` operand (`core/engine/src/vm/opcode/mod.rs:190-232`) lands on an
@@ -2034,7 +2047,7 @@ Invariants to document + check:
   (`core/engine/src/bytecompiler/mod.rs:933-940,1031-1058,1068-1074`); name matches
   the access site. Check bounds + name only; entries are runtime-populated.
 - Globals: `global_lexs/global_vars` → `Constant::String`; `GlobalFunctionBinding{name_index,
-  function_index}` → `String` + `Function` (`core/engine/src/vm/code_block.rs:112-119`).
+function_index}` → `String` + `Function` (`core/engine/src/vm/code_block.rs:112-119`).
 - Tail: block ends with compiler-appended `Return`
   (`core/engine/src/bytecompiler/mod.rs:2793`); async blocks have patched handler
   (`core/engine/src/bytecompiler/mod.rs:2790-2792`); `mapped_arguments_binding_indices`
@@ -2044,12 +2057,12 @@ Invariants to document + check:
 **2. `verify()` placement**
 
 - New `core/engine/src/vm/verify.rs`: `pub(crate) fn verify(&CodeBlock) ->
-  Result<(), VerifyError>` (new error enum, precise per-invariant variants + pc).
+Result<(), VerifyError>` (new error enum, precise per-invariant variants + pc).
   Reuse `InstructionIterator` (`core/engine/src/vm/opcode/mod.rs:515-555`) for the
   decode walk and `instruction_operands`/Display (`core/engine/src/vm/code_block.rs:955-984`)
   for error context. Recurse `Constant::Function`.
 - Wire-in (tests/fuzz only, never production default): call from a `#[cfg(any(test,
-  feature="verify-bytecode"))]` hook at end of `finish`
+feature="verify-bytecode"))]` hook at end of `finish`
   (`core/engine/src/bytecompiler/mod.rs:2807-2830`); Test262-acceptance test walks the
   pinned corpus compiling each file and asserting `verify` ok; invalid-input unit tests
   craft bad jumps/registers/truncated operands (operand decode asserts short reads,
@@ -2060,12 +2073,12 @@ Invariants to document + check:
 **3. Generator-extension design (extend, don't rebuild)**
 
 - Extend `tests/fuzz/fuzz_targets/common.rs`: `FuzzData{interner, ast: StatementList}`
-  + `Arbitrary` impl with `Sym`-remap via `VisitorMut`
-  (`tests/fuzz/fuzz_targets/common.rs:14-61`) and `FuzzSource` lifting via
-  `ast.to_interned_string(&interner)` (`tests/fuzz/fuzz_targets/common.rs:77-86`).
-  `StatementList: Arbitrary` (`core/ast/src/statement_list.rs:214-223`) + ~100
-  `#[cfg_attr(feature="arbitrary", derive(Arbitrary))]` AST nodes (e.g.
-  `core/ast/src/expression/mod.rs:69`, `core/ast/src/statement/mod.rs:43`) already exist.
+  - `Arbitrary` impl with `Sym`-remap via `VisitorMut`
+    (`tests/fuzz/fuzz_targets/common.rs:14-61`) and `FuzzSource` lifting via
+    `ast.to_interned_string(&interner)` (`tests/fuzz/fuzz_targets/common.rs:77-86`).
+    `StatementList: Arbitrary` (`core/ast/src/statement_list.rs:214-223`) + ~100
+    `#[cfg_attr(feature="arbitrary", derive(Arbitrary))]` AST nodes (e.g.
+    `core/ast/src/expression/mod.rs:69`, `core/ast/src/statement/mod.rs:43`) already exist.
 - Valid-by-construction path (primary): mutate AST with `VisitorMut`
   (`core/ast/src/visitor.rs:450-509`), lift with `ToInternedString`
   (`core/interner/src/lib.rs:607-620`, blanket impl for `ToIndentedString`), re-parse
@@ -2090,6 +2103,7 @@ Invariants to document + check:
 `Expression` variants (`core/ast/src/expression/mod.rs:71-181`), `Statement`
 (`core/ast/src/statement/mod.rs:45-107`); lift both sides via `to_interned_string`
 dispatch (`core/ast/src/expression/mod.rs:188-223`), compare observable behavior.
+
 - Const-fold pure `Binary`/`Unary` on `Literal` operands (int/float/string only;
   skip `+` on mixed, `Pow`, division edge cases); drop `Parenthesized` round-trip.
 - `Conditional` with literal condition → taken branch; `x && true`→`x` (keep order).
@@ -2107,12 +2121,12 @@ dispatch (`core/ast/src/expression/mod.rs:188-223`), compare observable behavior
 
 - Instrument `Opcode::as_str` (`core/engine/src/vm/opcode/mod.rs:387-393`) keyed
   counters: static pass (`InstructionIterator` over every Test262-compiled block)
-  + dynamic VM dispatch pass; dims = opcode × operand form
-  (`Address`/`RegisterOperand`/`IndexOperand`/`u32`/`ThinVec`, encoding in
-  `core/engine/src/vm/opcode/args.rs:68-75,120-228`) × branch taken/untaken for the
-  `Jump*`/`LogicalAnd|Or`/`Coalesce`/`Case`/`TemplateLookup` family
-  (`core/engine/src/vm/opcode/mod.rs:955-978,1612-1715,1824,2096`) × handler hit/miss
-  (`find_handler`). Publish per commit; every JS-reachable opcode needs a named test.
+  - dynamic VM dispatch pass; dims = opcode × operand form
+    (`Address`/`RegisterOperand`/`IndexOperand`/`u32`/`ThinVec`, encoding in
+    `core/engine/src/vm/opcode/args.rs:68-75,120-228`) × branch taken/untaken for the
+    `Jump*`/`LogicalAnd|Or`/`Coalesce`/`Case`/`TemplateLookup` family
+    (`core/engine/src/vm/opcode/mod.rs:955-978,1612-1715,1824,2096`) × handler hit/miss
+    (`find_handler`). Publish per commit; every JS-reachable opcode needs a named test.
 
 **Gotchas**: lifted source often invalid (nameless functions etc.) — always parse-gate
 (`tests/fuzz/fuzz_targets/parser-idempotency.rs:21-23`); `Register: Drop` panics on
@@ -2164,7 +2178,7 @@ panics); `finish(self)` consumes the compiler; `strict:false` forced in fuzz AST
    &|^; unary `-`/`!`), T3 `cond-fold` (literal conditions; `if(false)`
    without `else` excluded — completion-sensitivity), T4 `regroup`
    (same-operator `&&`/`||`/`??`/`&`/`|`/`^` with paren look-through).
-   Deliberately skipped with reason: paren-*dropping* (the AST printer
+   Deliberately skipped with reason: paren-_dropping_ (the AST printer
    never inserts precedence parens, so dropped parens mis-reparse and no
    span-insensitive AST equality exists to verify the lift), dead-store
    elimination / statement reordering (sealed `StatementList` +
@@ -2348,7 +2362,8 @@ to `core/engine/src/value/*` and `core/gc` so new unjustified `unsafe` fails
 CI. Gate inventory deltas by diffing `docs/unsafe-inventory.*` (P1 lint pattern).
 
 **Site taxonomy (all bodies opened).**
-- *A. NaN-boxed `JsValue` codec* (`core/engine/src/value/inner.rs:4-12`
+
+- _A. NaN-boxed `JsValue` codec_ (`core/engine/src/value/inner.rs:4-12`
   selects nan-boxed vs `jsvalue-enum` legacy). Tag/untag pure fns at
   `core/engine/src/value/inner/nan_boxed.rs:143-309`; `tag_pointer`
   (`nan_boxed.rs:278-302`) masks to 48 bits, panics off-platform
@@ -2356,13 +2371,13 @@ CI. Gate inventory deltas by diffing `docs/unsafe-inventory.*` (P1 lint pattern)
   `unsafe` surface: `as_*_unchecked` reconstruct `JsBigInt`/`JsObject`/
   `JsSymbol`/`JsString` via `ptr.with_addr` + `from_raw`
   (`nan_boxed.rs:655-663,684-692,713-721,742-750`), each with `# Safety: inner
-  value must be valid`; callers guard on `is_*` tag checks with `SAFETY: must
-  hold a valid, non-null` comments (`nan_boxed.rs:641-642,670-671,699-700,
-  728-729`); `Clone` uses `mem::forget` after cloning the pointee
+value must be valid`; callers guard on `is_*` tag checks with `SAFETY: must
+hold a valid, non-null` comments (`nan_boxed.rs:641-642,670-671,699-700,
+728-729`); `Clone` uses `mem::forget` after cloning the pointee
   (`nan_boxed.rs:371-382`); `Trace` marks only `Object`
   (`nan_boxed.rs:356-362`) — strings/symbols/bigints are `Rc`-based, not GC;
   audit must prove no `Gc`-owned payload hides behind those tags.
-- *B. GC core* (`core/gc/src/lib.rs:44-51` thread-local `BOA_GC`; allocator
+- _B. GC core_ (`core/gc/src/lib.rs:44-51` thread-local `BOA_GC`; allocator
   `Box::into_raw` + `NonNull::new_unchecked` at `lib.rs:138,157,179`).
   `Collector::collect` (`lib.rs:225-278`) runs mark→finalize→mark→sweep;
   `unsafe fn finalize` (`lib.rs:422-438`) and `unsafe fn sweep`
@@ -2384,7 +2399,7 @@ CI. Gate inventory deltas by diffing `docs/unsafe-inventory.*` (P1 lint pattern)
   (`core/gc/src/internals/ephemeron_box.rs:7-15`); `value/key_ptr/key/set`
   (`ephemeron_box.rs:43-99`) all `# Safety: no live mutable refs`; key-liveness
   trace at `ephemeron_box.rs:139-164`.
-- *C. `boa_string`* (`Cell<usize>` refcount, `#[repr(C)]` vtable-first
+- _C. `boa_string`_ (`Cell<usize>` refcount, `#[repr(C)]` vtable-first
   layouts). `JsString::from_raw/from_ptr/slice_unchecked/as_inner`
   (`core/string/src/lib.rs:514,526,573,611`) with per-fn safety docs;
   `JsStringBuilder`: `alloc`/`realloc` (`core/string/src/builder.rs:89,163`),
@@ -2395,11 +2410,11 @@ CI. Gate inventory deltas by diffing `docs/unsafe-inventory.*` (P1 lint pattern)
   `SequenceString::try_allocate` (`core/string/src/vtable/sequence.rs:70-117`)
   asserts `DATA_OFFSET`; vtable fns cast `NonNull<JsStringVTable>` back with
   `SAFETY: validated on construction` (`sequence.rs:130`, `slice.rs:61,73,
-  92,106`); `SliceString::new` (`slice.rs:30-48`) extends a `JsStr` borrow to
+92,106`); `SliceString::new` (`slice.rs:30-48`) extends a `JsStr` borrow to
   `'static` tied to `owned` clone — audit aliasing between `inner`/`owned`.
-- *D. TypedArray/ArrayBuffer/shared memory.* `SliceRef::get_value` /
+- _D. TypedArray/ArrayBuffer/shared memory._ `SliceRef::get_value` /
   `SliceRefMut::set_value` (`core/engine/src/builtins/array_buffer/utils.rs:
-  131,330`) document size+alignment contracts; `Element::read/read_mut`
+131,330`) document size+alignment contracts; `Element::read/read_mut`
   (`core/engine/src/builtins/typed_array/element/mod.rs:246,256`) implemented
   by macro with debug len/align asserts (`element/mod.rs:305-337`); batched
   atomic copies + `memcpy`/`memmove` (`utils.rs:428,507,584,656,764,819`).
@@ -2407,8 +2422,8 @@ CI. Gate inventory deltas by diffing `docs/unsafe-inventory.*` (P1 lint pattern)
   (`core/engine/src/builtins/atomics/futex.rs:245-248`); `add_waiter` builds
   `UnsafeRef` from `&FutexWaiter` (`futex.rs:269-277`). Smaller sites:
   `to_int_unchecked` after range check (`core/engine/src/builtins/string/
-  mod.rs:338-342`).
-- *E. `Trace` obligations.* `unsafe trait Trace` (`core/gc/src/trace.rs:78-96`)
+mod.rs:338-342`).
+- _E. `Trace` obligations._ `unsafe trait Trace` (`core/gc/src/trace.rs:78-96`)
   warns wrong impls cause UAF/UB; `Tracer::trace_until_empty` (`trace.rs:43-56`)
   requires queue-validity. Every `#[unsafe_ignore_trace]` /
   `#[boa_gc(unsafe_empty_trace)]` / `#[boa_gc(unsafe_no_drop)]` (builtins
@@ -2535,8 +2550,7 @@ Seeded-UB drill: one bug per layer; record which layer caught which.
   constructor, miri-ignore exact allowlist with `MIRI-IGNORE:`
   justifications, in-file `#[cfg(test)]` gating).
   Root causes fixed: `boa_engine/fuzz` unification -> `--exclude boa_fuzz
-  --exclude boa_fuzzilli`; parallelism OOM (6.9GB @ 16 threads, 6.4GB @
-  2) -> `--test-threads=1`; `Context::default()` canonicalize abort ->
+--exclude boa_fuzzilli`; parallelism OOM (6.9GB @ 16 threads, 6.4GB @ 2) -> `--test-threads=1`; `Context::default()` canonicalize abort ->
   shared `test_context()` helper, 11 sites converted; `mod miri` in
   nan_boxed lacked `#[cfg(test)]` (leaked unused import into normal
   builds) -> gated. Ignores (3, all justified): `cyclic_prototype_walk`
@@ -2575,7 +2589,7 @@ Seeded-UB drill: one bug per layer; record which layer caught which.
   (`symbol/mod.rs:36,44`); (e) all 4 `Send`/`Sync` impls confirmed at
   inventoried lines. No `--cfg loom` code exists because there is no
   first-party lock-free protocol to check. Ref: `docs/concurrency-
-  inventory.md` verdict section.
+inventory.md` verdict section.
 - 6.4 Kani kernels CLOSED: 7 proofs green (`cargo kani`, KANI_EXIT=0).
   (a) codec 4/4 complete, loop-free (i32/bool/f64-canonical/pointer
   round-trips + exactly-once classification), non-vacuity proven by a
@@ -2612,14 +2626,14 @@ Seeded-UB drill: one bug per layer; record which layer caught which.
   counterexample, 2 Miri UB reports, 1 ASan report, 2 UB-check aborts).
 - P6 CLOSED. Exit criteria: inventory 727/727 justified+owned+covered
   with CI diff check; Miri green (16 mods, 104 tests, multi-seed) on PR
-  + nightly schedule; sanitizer green (full unsafe-core suites) on
-  nightly schedule; Kani green (7 proofs) on nightly schedule (new
-  `kani` job; like `miri_seeds`/`sanitizer`, CI-unproven until the first
-  scheduled run); Loom negatively closed with re-verified premises;
-  seeded-UB drill demonstrated. Final gates: fmt clean, clippy zero-new
-  (2 pre-existing iterator_helper + 7 pre-existing fuzzilli under
-  --all-targets), engine 1168 + gc 36 + string 25 + interner 8 normal,
-  verify-baseline 1 pre-existing Cargo.lock failure only.
+  - nightly schedule; sanitizer green (full unsafe-core suites) on
+    nightly schedule; Kani green (7 proofs) on nightly schedule (new
+    `kani` job; like `miri_seeds`/`sanitizer`, CI-unproven until the first
+    scheduled run); Loom negatively closed with re-verified premises;
+    seeded-UB drill demonstrated. Final gates: fmt clean, clippy zero-new
+    (2 pre-existing iterator_helper + 7 pre-existing fuzzilli under
+    --all-targets), engine 1168 + gc 36 + string 25 + interner 8 normal,
+    verify-baseline 1 pre-existing Cargo.lock failure only.
 
 ### P7 — Multi-dimensional coverage, mutation adequacy, readiness battery (the gate that never opens again)
 
@@ -2842,7 +2856,7 @@ detached checkouts and must be hardened in P0 pinning first.
   artifacts inventoried (tester `latest.json`/`results.json`/
   `features.json`, differential queue, fuzz battery/matrix, benches,
   lints, codecov, VM matrix). `codecov.yml` tightened (project 5%->1%
-  + patch 80% choke; target needs calibration against engine ~62%).
+  - patch 80% choke; target needs calibration against engine ~62%).
 - 7.1 four coverage dimensions CLOSED as non-decreasing gates
   (2026-10-04). Code: tarpaulin split (small crates, then engine with
   `--timeout 600/1200`) + union-merge by covered lines is canonical
@@ -2858,7 +2872,7 @@ detached checkouts and must be hardened in P0 pinning first.
   verbatim, corpus-derived drift detector, outcome-independent); self
   GREEN on run-1/run-2/fresh full Test262, evil RED proven; fresh full
   suite `target/test262-fresh/` T262_EXIT=0. State: `coverage_ic_
-  transition` (`core/engine/src/vm/coverage.rs`) hooked in
+transition` (`core/engine/src/vm/coverage.rs`) hooked in
   `InlineCache::set` (`vm/inline_cache/mod.rs`, transition-only —
   hits/mega no-ops bump nothing), `ic_transitions_emit_cells` 10
   passed; probe `tests/fuzz/probes/ic-transitions.js` walks
@@ -2898,7 +2912,7 @@ detached checkouts and must be hardened in P0 pinning first.
   args without `--`, baseline exit 4 proven). Contains correction: an early
   "zero callers" claim was wrong (narrow grep) — regexp/string builtins call
   `contains` for flag checks; the probe mutant HANGS (`match_with_overridden
-  _exec` + 8 fast failures) → timeouts are kills after triage. Durable
+_exec` + 8 fast failures) → timeouts are kills after triage. Durable
   collateral: `contains_byte` unit test (Latin1+Utf16 × present/absent)
   kills 4/4 retested mutants. Boa-specific set `docs/boa-mutants.md`: 9/9
   PROVEN killed via `scripts/run-boa-mutants.sh` (BOA_EXIT=0, zero residue),
@@ -2927,25 +2941,25 @@ Every phase's gate ultimately reduces to these runnable checks (exact flags
 for new tooling are fixed when built; existing commands below are verified
 in-tree):
 
-| Check | Command (from repo root, pinned toolchain) | Expected evidence |
-|---|---|---|
-| Unit + integration suites | `cargo test --workspace` | zero failures |
-| Full Test262 run | `cargo run --release --bin boa_tester -- run -o <out>` | verdict file; counted outcomes, zero untriaged |
-| No-regression verdict | `cargo run --release --bin boa_tester -- compare <base> <new>` | pass count monotonic; no new failures/skips/crashes |
-| Regression DB | single documented command (`tests/regression/`) | all entries pass |
-| Differential corpus | `tools/differential/run` (new in P3) | zero untriaged mismatches |
-| Fuzz smoke (per PR) | `cd tests/fuzz && cargo fuzz run -s none -- -max_total_time=<budget> <target>` per target | zero new crashes; seeds pass |
-| Fuzz long + instrumented | same with `-s address,undefined` on schedule | zero untriaged crashes; coverage non-decreasing |
-| Corpus ops | `cargo fuzz cmin|tmin|coverage <target>` | minimized reproducers; merged corpus; coverage reports |
-| Miri core | broadened `cargo miri test …` (extends `rust.yml:348-349`) | green on seed set |
-| Sanitizer tests | `RUSTFLAGS="-Zsanitizer=address,undefined" cargo test …` (flags pinned in P0) | green |
-| Kani kernels | `cargo kani -p <crate> --harness <name>` per harness | proven / bounded-pass with documented bounds |
-| Loom (if in scope) | `RUSTFLAGS="--cfg loom" cargo test --release …` | green |
-| Coverage | existing coverage job invocation (`rust.yml:156`), extended dimensions | four dimensions published, non-decreasing |
-| Mutation | scheduled full + per-PR sampled runs | kill threshold met; survivors justified |
-| Perf smoke | criterion benches + JS smoke set vs `perf/baseline.json` | within threshold or signed off |
-| Config lints | ignore-list lint, unsafe-inventory check, quarantine check | zero unjustified entries |
-| Full battery | one P7 command + scheduled workflow + dashboard | all green |
+| Check                     | Command (from repo root, pinned toolchain)                                                | Expected evidence                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Unit + integration suites | `cargo test --workspace`                                                                  | zero failures                                       |
+| Full Test262 run          | `cargo run --release --bin boa_tester -- run -o <out>`                                    | verdict file; counted outcomes, zero untriaged      |
+| No-regression verdict     | `cargo run --release --bin boa_tester -- compare <base> <new>`                            | pass count monotonic; no new failures/skips/crashes |
+| Regression DB             | single documented command (`tests/regression/`)                                           | all entries pass                                    |
+| Differential corpus       | `tools/differential/run` (new in P3)                                                      | zero untriaged mismatches                           |
+| Fuzz smoke (per PR)       | `cd tests/fuzz && cargo fuzz run -s none -- -max_total_time=<budget> <target>` per target | zero new crashes; seeds pass                        |
+| Fuzz long + instrumented  | same with `-s address,undefined` on schedule                                              | zero untriaged crashes; coverage non-decreasing     |
+| Corpus ops                | `cargo fuzz cmin                                                                          | tmin                                                | coverage <target>` | minimized reproducers; merged corpus; coverage reports |
+| Miri core                 | broadened `cargo miri test …` (extends `rust.yml:348-349`)                                | green on seed set                                   |
+| Sanitizer tests           | `RUSTFLAGS="-Zsanitizer=address,undefined" cargo test …` (flags pinned in P0)             | green                                               |
+| Kani kernels              | `cargo kani -p <crate> --harness <name>` per harness                                      | proven / bounded-pass with documented bounds        |
+| Loom (if in scope)        | `RUSTFLAGS="--cfg loom" cargo test --release …`                                           | green                                               |
+| Coverage                  | existing coverage job invocation (`rust.yml:156`), extended dimensions                    | four dimensions published, non-decreasing           |
+| Mutation                  | scheduled full + per-PR sampled runs                                                      | kill threshold met; survivors justified             |
+| Perf smoke                | criterion benches + JS smoke set vs `perf/baseline.json`                                  | within threshold or signed off                      |
+| Config lints              | ignore-list lint, unsafe-inventory check, quarantine check                                | zero unjustified entries                            |
+| Full battery              | one P7 command + scheduled workflow + dashboard                                           | all green                                           |
 
 Cross-cutting drills that must each demonstrate red→green: seeded-regression
 (P1), pipeline/normalizer fixtures (P3), seeded-crash + logic-revert (P4),
@@ -3044,7 +3058,7 @@ and sampled source; paths are evidence, not decoration.
   `missing_debug_implementations`, `missing_copy_implementations`,
   `unreachable_pub`, `unused_qualifications`, and more; rustdoc lints
   (`broken_intra_doc_links`, etc.); clippy `all/correctness/suspicious/style/
-  complexity/perf/pedantic` at `warn`, plus `dbg_macro`, `print_stdout`,
+complexity/perf/pedantic` at `warn`, plus `dbg_macro`, `print_stdout`,
   `print_stderr` (printing is allowed in tests only:
   `allow-print-in-tests = true`).
 - Every crate sets `#![cfg_attr(not(test), forbid(clippy::unwrap_used))]`
@@ -3072,7 +3086,7 @@ and sampled source; paths are evidence, not decoration.
 - Opcodes are PascalCase verbs: `Var`, `InitVar`, `SetName`,
   `GetPropertyByName`, … (`core/engine/src/vm/opcode/`).
 - Builtins follow one shape per object (`core/engine/src/builtins/array/
-  mod.rs` is the template): a struct (`Array`), `pub(crate) fn` per method,
+mod.rs` is the template): a struct (`Array`), `pub(crate) fn` per method,
   registration in `fn init(realm: &Realm)` with the builder chain
   (`.static_method(Self::from, js_string!("from"), 1)`,
   `.static_accessor`, …), `JsArgs` for arguments, `js_string!`/`js_str!`/
@@ -3100,7 +3114,7 @@ and sampled source; paths are evidence, not decoration.
   `core/engine/src/builtins/number/conversions.rs:85`); P6 extends this to a
   machine-checked inventory, but the comment convention already exists — follow
   it from day one.
-- Prefer intra-doc links (`` [`JsValue`] ``); keep `TODO`/`FIXME`/`NOTE`
+- Prefer intra-doc links (``[`JsValue`]``); keep `TODO`/`FIXME`/`NOTE`
   markers rare, specific, and owned (the plan's quarantine rule applies the
   same discipline to tests).
 
@@ -3110,7 +3124,7 @@ and sampled source; paths are evidence, not decoration.
   under `#[cfg(test)]`).
 - JS-behavior tests use the shared harness from the crate root:
   `run_test_actions([TestAction::run_harness(), TestAction::run("…"),
-  TestAction::assert("…"), TestAction::assert_eq("…", …), …])`
+TestAction::assert("…"), TestAction::assert_eq("…", …), …])`
   (`core/engine/src/lib.rs:360`, `core/engine/src/builtins/array/tests.rs`),
   with `indoc!` for multi-line JS. New behavioral tests must use this harness
   rather than inventing ad-hoc contexts.

@@ -53,7 +53,7 @@ jobs:
 
       - name: Upload crash artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: fuzz-nightly-crashes-${{ matrix.target }}
           path: tests/fuzz/artifacts/
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload evolved corpus snapshot
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: fuzz-nightly-corpus-${{ matrix.target }}
           path: tests/fuzz/corpus/${{ matrix.target }}/
@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload sanitizer artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: fuzz-sanitizer-${{ matrix.sanitizer }}-${{ matrix.target }}
           path: tests/fuzz/artifacts/
@@ -168,7 +168,7 @@ jobs:
           ./pipeline/coverage-gate.py
 
       - name: Upload coverage reports
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: fuzz-weekly-coverage
           path: tests/fuzz/coverage/

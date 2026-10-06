@@ -9,11 +9,11 @@ are the committed state.
 
 1. Reproduces through the fleet binary (fleet-visibility proof), capturing
    the drill-taxonomy signature (`exit=N :: marker-line`).
-2. Dedupes against `known-signatures.txt` *before* the expensive step.
+2. Dedupes against `known-signatures.txt` _before_ the expensive step.
    Open-rule matches exit as duplicates; landed-rule matches still get a
    skeleton (possible regression — fail safe); bare hangs always get a
    skeleton for manual dedupe (two hangs never auto-dedupe).
-3. Minimizes via `cargo fuzz tmin` under the *same* sanitizer (hangs skip;
+3. Minimizes via `cargo fuzz tmin` under the _same_ sanitizer (hangs skip;
    hang minimization is manual bisection).
 4. Writes `triage/<slug>/`: `minimized.bin`, `repro.js` (byte targets) or
    `rendered.js` (structured targets, via `cargo run --example render`),

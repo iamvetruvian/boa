@@ -809,7 +809,7 @@ And the good news is that this means you **do not have to write JavaScript from 
 
 30/09/2026, 22:37:51
 
-Which of these gaps in Boa should be addressable first and comparitively easier to solve/make from scratch? Arrange these gaps in Boa in the order in which i should solve/implement them. Which gap should be solved after which one?
+Which of these gaps in Boa should be addressable first and comparatively easier to solve/make from scratch? Arrange these gaps in Boa in the order in which i should solve/implement them. Which gap should be solved after which one?
 
 ## Response:
 

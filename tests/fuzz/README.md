@@ -148,6 +148,6 @@ the leak checker at its defaults — and the defaults are proven clean (a
 200-run ASan loop exits 0 with zero leak reports), so a future leak
 report is signal, not GC noise.
 
-Boundary: this phase owns sanitizer *fuzz* runs only. Sanitizer-instrumented
+Boundary: this phase owns sanitizer _fuzz_ runs only. Sanitizer-instrumented
 `cargo test` runs for unsafe-adjacent crates belong to P6 (unsafe audit), which
 owns the unsafe inventory and its gates.

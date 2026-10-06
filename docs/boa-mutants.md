@@ -26,17 +26,17 @@ files `cargo-mutants` cannot see (see `scripts/check-mutation-filter.sh`):
 
 ## The set
 
-| ID | Class (plan §7.2) | File | Killer |
-|----|-------------------|------|--------|
-| BM-CMP-1 | comparison-boundary flip | `core/engine/src/value/operations.rs` (`lt_fast`) | `cargo test -p boa_engine --lib control_flow::loops` |
-| BM-IC-1 | skipped IC guard (plan-literal) | `core/engine/src/vm/inline_cache/mod.rs` (`set`) | `cargo test -p boa_engine --features vm-coverage ic_transitions` |
-| BM-IC-2 | skipped IC guard (inverted) | `core/engine/src/vm/inline_cache/mod.rs` (`get`) | `cargo test -p boa_engine --lib inline_cache` |
-| BM-PROTO-1 | dropped prototype-chain step | `core/engine/src/object/internal_methods/mod.rs` (`ordinary_get`) | `cargo test -p boa_engine --lib object` |
-| BM-REG-1 | operand perturbation | `core/engine/src/vm/opcode/mod.rs` (`RegisterOperand::new`) | `cargo test -p boa_engine --lib value::tests::abstract_equality_comparison` |
-| BM-ERR-1 | swapped error type | `core/engine/src/builtins/string/mod.rs` (`starts_with`) | `cargo test -p boa_engine --lib builtins::string::tests::starts_with_with_regex_arg` |
-| BM-GC-1 | removed GC root accounting | `core/gc/src/lib.rs` (`sweep`) | `cargo test -p boa_gc weak` |
-| BM-NAN-1 | codec boundary (blind-file cover) | `core/engine/src/value/inner/nan_boxed.rs` (`tag_f64`) | `cargo kani -p boa_engine --harness kani_codec_f64_canonical` |
-| BM-FETCH-1 | fake-breaking (blind-file cover) | `core/runtime/src/fetch/tests/mod.rs` (`add_response`) | `cargo test -p boa_runtime fetch::tests` |
+| ID         | Class (plan §7.2)                 | File                                                              | Killer                                                                               |
+| ---------- | --------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| BM-CMP-1   | comparison-boundary flip          | `core/engine/src/value/operations.rs` (`lt_fast`)                 | `cargo test -p boa_engine --lib control_flow::loops`                                 |
+| BM-IC-1    | skipped IC guard (plan-literal)   | `core/engine/src/vm/inline_cache/mod.rs` (`set`)                  | `cargo test -p boa_engine --features vm-coverage ic_transitions`                     |
+| BM-IC-2    | skipped IC guard (inverted)       | `core/engine/src/vm/inline_cache/mod.rs` (`get`)                  | `cargo test -p boa_engine --lib inline_cache`                                        |
+| BM-PROTO-1 | dropped prototype-chain step      | `core/engine/src/object/internal_methods/mod.rs` (`ordinary_get`) | `cargo test -p boa_engine --lib object`                                              |
+| BM-REG-1   | operand perturbation              | `core/engine/src/vm/opcode/mod.rs` (`RegisterOperand::new`)       | `cargo test -p boa_engine --lib value::tests::abstract_equality_comparison`          |
+| BM-ERR-1   | swapped error type                | `core/engine/src/builtins/string/mod.rs` (`starts_with`)          | `cargo test -p boa_engine --lib builtins::string::tests::starts_with_with_regex_arg` |
+| BM-GC-1    | removed GC root accounting        | `core/gc/src/lib.rs` (`sweep`)                                    | `cargo test -p boa_gc weak`                                                          |
+| BM-NAN-1   | codec boundary (blind-file cover) | `core/engine/src/value/inner/nan_boxed.rs` (`tag_f64`)            | `cargo kani -p boa_engine --harness kani_codec_f64_canonical`                        |
+| BM-FETCH-1 | fake-breaking (blind-file cover)  | `core/runtime/src/fetch/tests/mod.rs` (`add_response`)            | `cargo test -p boa_runtime fetch::tests`                                             |
 
 ### BM-CMP-1 — `lt_fast` means `<=` (PROVEN)
 
@@ -56,7 +56,7 @@ suite red: 16 failed / 1152 passed.
 Transform (`InlineCache::new`): `Cell::new(false)` → `Cell::new(true)`.
 Every cache is born megamorphic; `set` early-returns via the existing guard,
 so no caching ever happens. Lookups
-stay *correct* (slow path is the reference), so the behavioral `object` suite
+stay _correct_ (slow path is the reference), so the behavioral `object` suite
 (121 tests) stays GREEN — perf-only as far as behavior goes. Two layers pin
 the optimization itself and both go red: the IC's own unit tests (3 failed:
 `test_polymorphic_inline_cache`,
@@ -70,7 +70,7 @@ as an independent second layer, not an exclusive one.)
 ### BM-IC-2 — shape guard inverted (PROVEN)
 
 Transform (`InlineCache::get`): `upgraded.to_addr_usize() == shape_addr` →
-`!=`. The cache returns the first *non-matching* entry's slot. Killer: the
+`!=`. The cache returns the first _non-matching_ entry's slot. Killer: the
 IC's own unit tests (`inline_cache` filter:
 `test_polymorphic_inline_cache`, `test_megamorphic_inline_cache`). Analysis
 learned in execution: the `object` filter (120 tests) stays GREEN because

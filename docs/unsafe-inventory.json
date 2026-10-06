@@ -1603,7 +1603,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 641,
+      "line": 628,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => already_called: Rc<Cell<bool>>,",
       "safety_status": "justified",
@@ -1614,7 +1614,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 646,
+      "line": 633,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => remaining_elements_count: Rc<Cell<i32>>,",
       "safety_status": "justified",
@@ -1625,7 +1625,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 856,
+      "line": 843,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => already_called: Rc<Cell<bool>>,",
       "safety_status": "justified",
@@ -1636,7 +1636,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 861,
+      "line": 848,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => remaining_elements: Rc<Cell<i32>>,",
       "safety_status": "justified",
@@ -1647,7 +1647,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1213,
+      "line": 1200,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => already_called: Rc<Cell<bool>>,",
       "safety_status": "justified",
@@ -1658,7 +1658,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1216,
+      "line": 1203,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => variant: KeyedVariant,",
       "safety_status": "justified",
@@ -1669,7 +1669,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1218,
+      "line": 1205,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => keys: Rc<RefCell<Vec<PropertyKey>>>,",
       "safety_status": "justified",
@@ -1680,7 +1680,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1222,
+      "line": 1209,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => remaining_elements: Rc<Cell<i32>>,",
       "safety_status": "justified",
@@ -1691,7 +1691,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1533,
+      "line": 1520,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => already_called: Rc<Cell<bool>>,",
       "safety_status": "justified",
@@ -1702,7 +1702,7 @@
     },
     {
       "file": "core/engine/src/builtins/promise/mod.rs",
-      "line": 1538,
+      "line": 1525,
       "kind": "trace_bypass",
       "code": "#[unsafe_ignore_trace] // => remaining_elements_count: Rc<Cell<i32>>,",
       "safety_status": "justified",
@@ -7642,7 +7642,7 @@
     },
     {
       "file": "core/string/src/tests.rs",
-      "line": 293,
+      "line": 310,
       "kind": "unsafe_block",
       "code": "let s_builder = unsafe { builder.build_as_latin1() };",
       "safety_status": "justified",
@@ -7653,7 +7653,7 @@
     },
     {
       "file": "core/string/src/tests.rs",
-      "line": 309,
+      "line": 326,
       "kind": "unsafe_block",
       "code": "let s_builder = unsafe {",
       "safety_status": "justified",
@@ -7664,7 +7664,7 @@
     },
     {
       "file": "core/string/src/tests.rs",
-      "line": 330,
+      "line": 347,
       "kind": "unsafe_block",
       "code": "let s_builder = unsafe { builder.build_as_latin1() };",
       "safety_status": "justified",

@@ -32,13 +32,13 @@ jobs:
           toolchain: 1.94.0
 
       - name: Install mold linker
-        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+        uses: rui314/setup-mold@10ca16bf91dc22e05ebdc935cad9c75ea248f621 # v1
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Cache oracle binary
-        uses: actions/cache@9255dc2d030a5baf3d63b345a4ffbef6b8a67427f # v10.0.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: boa/target/oracle
           key: oracle-${{ hashFiles('boa/scripts/fetch-oracle.sh') }}
@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload differential results
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: differential-ci-results
           path: results/differential-ci
@@ -101,13 +101,13 @@ jobs:
           toolchain: 1.94.0
 
       - name: Install mold linker
-        uses: rui314/setup-mold@7d6d806a11c987c44a653b11f8e2f0cbd9a1a225c # v1
+        uses: rui314/setup-mold@10ca16bf91dc22e05ebdc935cad9c75ea248f621 # v1
 
       - name: Cache Cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Cache oracle binary
-        uses: actions/cache@9255dc2d030a5baf3d63b345a4ffbef6b8a67427f # v10.0.0
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: boa/target/oracle
           key: oracle-${{ hashFiles('boa/scripts/fetch-oracle.sh') }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload differential results
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6f1d0e05d4a878c7efc75283e63f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: differential-full-results
           path: results/differential-full

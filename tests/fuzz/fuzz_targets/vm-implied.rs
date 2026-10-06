@@ -21,7 +21,7 @@ fn do_fuzz(source: String) -> Corpus {
     // symbols; all downstream uses share this interner consistently.
     let mut interner = Interner::default();
 
-    // Parse gate (P5.2 valid-only): reject unparseable lifts so the corpus
+    // Parse gate (P5.2 valid-only): reject unparsable lifts so the corpus
     // concentrates on programs the VM legs can actually distinguish (parser
     // space belongs to parser-idempotency/source-bytes). Before rejecting,
     // assert error-determinism like parser-idempotency does.
