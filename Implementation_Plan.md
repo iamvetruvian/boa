@@ -1923,6 +1923,23 @@ exit-criteria verdict closes the section.
     `cannot fail per spec` js_expect; fix-loop chooses RangeError vs
     uncatchable propagation, entry records both). The sloppy `this = 5`
     latent nit from item 22 remains unfiled.
+27. Step-0 follow-up (2026-10-06): two harness bugs found while rebasing onto
+    upstream main, both fixed before the rebaseline. (a) Workspace feature
+    unification: tools/fuzzilli (workspace member since P4.7) enables
+    boa_engine/fuzz+verify-bytecode, and a bare `cargo --bin X` from the
+    workspace root unifies those into the build — proven by diffing rustc
+    `--cfg` lines (`-p` clean vs `--bin` fuzz-enabled). The resulting tester
+    fails every test with NoInstructionsRemain (default budget 0). Fixed 10
+    call sites (snapshot script, 5 workflows, 2 Makefile tasks) to `-p`-scoped
+    form and added a `verify-baseline.sh` guard (proven both directions).
+    Lesson: fuzz-enabling crates must stay out of default-member unification
+    reach (tests/fuzz is excluded; tools/fuzzilli is not — tolerated now that
+    all call sites are scoped and guarded). (b) Rayon worker stacks: the P4.3
+    parser guard (256 KiB absolute red zone) plus rayon's 2 MiB default
+    workers spuriously reject 32-deep nesting (test262 S13.2.1_A1_T1, needs
+    ~3 MiB release / ~13 MiB debug by measurement). Sized the tester and
+    differential pools to 32 MiB workers (stacks commit lazily). S13 green in
+    both profiles afterwards; full suite deterministic at 51446/51446.
 
 ### P5 — Bytecode validity model, VM-level testing, metamorphic equivalence
 

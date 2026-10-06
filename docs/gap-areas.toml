@@ -24,7 +24,7 @@ notes = "190I unimplemented explicit-resource-management + 14I decorators propos
 layer = "engine/builtins"
 work_item = "P2.iterator"
 status = "open"
-notes = "122I are iterator-helpers proposals (chunking, includes); 6F + 6I explicit-resources are implementable."
+notes = "122I are iterator-helpers proposals (chunking, includes); 6I explicit-resources are implementable. (Take/drop 6F fixed by upstream #5541, step-0 rebaseline.)"
 
 [areas."intl:DateTimeFormat"]
 layer = "intl"

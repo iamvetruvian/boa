@@ -56,8 +56,8 @@ is only comparable to a new number taken with the same row:
 
 | Artifact | Location | Headline result |
 |---|---|---|
-| Test262 conformance snapshot (two full runs) | `test-results-baseline/run-1`, `run-2` (+ `MANIFEST.md`) | 53578 total, 51437 passed, 1648 ignored, 493 failed, 0 panics, 96.00% — both `latest.json` files byte-identical |
-| Test262 full-run wall time | `test-results-baseline/MANIFEST.md`, `perf/baseline.json` | 122 s / 108 s / 98 s (bounds full-gate frequency) |
+| Test262 conformance snapshot (two full runs) | `test-results-baseline/run-1`, `run-2` (+ `MANIFEST.md`) | 53578 total, 51446 passed, 1648 ignored, 484 failed, 0 panics, 96.02% — both `latest.json` files byte-identical (re-snapshotted step-0, 2026-10-06) |
+| Test262 full-run wall time | `test-results-baseline/MANIFEST.md`, `perf/baseline.json` | 84 s / 84 s (bounds full-gate frequency) |
 | Performance baseline | `perf/baseline.json` | Criterion means per `benches/scripts/**` on the pinned toolchain |
 | Architecture inventory | `docs/architecture-inventory.md` | every crate + major module classified |
 | Unsafe inventory | `docs/unsafe-inventory.json` (machine-readable) + `docs/unsafe-inventory.md` | every `unsafe` block/fn/impl under `core/*`, status `unjustified` by default (P6 audits) |

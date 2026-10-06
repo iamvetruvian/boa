@@ -51,6 +51,10 @@ profile.json.gz
 playwright-report
 test-results
 
+# Per-run crash records carry timestamps (not byte-deterministic); the
+# tracked baseline keeps latest/results/features.json only.
+test-results-baseline/*/crashes.json
+
 # dhat
 dhat-*.json
 perf.data*
@@ -60,7 +64,7 @@ perf.data*
 /.direnv
 
 # Other
-trajectory-2026-10-03-120536.json
-trajectory-2026-10-03-120916.json
-Implementation_Plan.md
-conversation-2026-10-03-120739.txt
+./trajectory-2026-10-03-120536.json
+./trajectory-2026-10-03-120916.json
+./Implementation_Plan.md
+./conversation-2026-10-03-120739.txt

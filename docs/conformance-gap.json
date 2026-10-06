@@ -2,12 +2,12 @@
   "schema_version": 1,
   "tool": "boa_tester",
   "tool_version": "0.22.0",
-  "updated": "2026-10-02T11:20:09.624095811Z",
+  "updated": "2026-10-06T09:18:06.106557261Z",
   "test262_commit": "d86b2294eb0a17eaa281ff12c73c473ec864c72f",
   "suite_root": "test",
   "counts": {
     "t": 53578,
-    "o": 51440,
+    "o": 51446,
     "i": 1648,
     "p": 0,
     "to": 0,
@@ -281,8 +281,8 @@
     },
     "builtin:Iterator": {
       "total": 654,
-      "passed": 520,
-      "failed": 6,
+      "passed": 526,
+      "failed": 0,
       "ignored": 128,
       "abnormal": 0,
       "layer": "engine/builtins",
@@ -8663,45 +8663,6 @@
         "work_item": "P2.iterator-chunking"
       }
     },
-    "test/built-ins/Iterator/prototype/drop/argument-effect-order": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.drop"
-    },
-    "test/built-ins/Iterator/prototype/drop/argument-validation-failure-closes-underlying": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.drop"
-    },
-    "test/built-ins/Iterator/prototype/drop/limit-rangeerror": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.drop"
-    },
     "test/built-ins/Iterator/prototype/includes/argument-effect-order": {
       "r": "I",
       "area": "builtin:Iterator",
@@ -9493,45 +9454,6 @@
         "reason": "pending proposal",
         "work_item": "P2.iterator-includes"
       }
-    },
-    "test/built-ins/Iterator/prototype/take/argument-effect-order": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.take"
-    },
-    "test/built-ins/Iterator/prototype/take/argument-validation-failure-closes-underlying": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.take"
-    },
-    "test/built-ins/Iterator/prototype/take/limit-rangeerror": {
-      "r": "F",
-      "area": "builtin:Iterator",
-      "features": [
-        "iterator-helpers"
-      ],
-      "v": 16,
-      "flags": [
-        "strict",
-        "no_strict"
-      ],
-      "esid": "sec-iterator.prototype.take"
     },
     "test/built-ins/Iterator/prototype/windows/argument-effect-order": {
       "r": "I",
